@@ -41,10 +41,16 @@ export const DashboardLayout: React.FC = () => {
     ];
     
     // Role-specific links
-    let roleLinks = [];
+    type NavLink = { name: string; to: string; icon: React.ReactNode };
+    let roleLinks: NavLink[] = [];
     
     if (user.role === 'admin') {
       roleLinks = [
+        {
+          name: 'Admin Campaigns',
+          to: '/admin/campaigns',
+          icon: <Megaphone className="h-5 w-5" />,
+        },
         {
           name: 'Campaigns',
           to: '/campaigns',

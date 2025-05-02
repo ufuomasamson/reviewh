@@ -16,7 +16,7 @@ export const CampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { getCampaignById, getReviews, createReview, updateReviewStatus, deleteCampaign, isLoading, error } = useCampaignStore();
+  const { getCampaignById, getReviews, createReview, updateReviewStatus, deleteCampaign, isLoading, error, updateCampaign } = useCampaignStore();
   
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -154,6 +154,16 @@ export const CampaignDetailPage: React.FC = () => {
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
+    }
+  };
+  
+  const handleApproveCampaign = async () => {
+    if (!campaign) return;
+    try {
+      const updated = await updateCampaign(campaign.id, { status: 'active' });
+      setCampaign(updated);
+    } catch (err) {
+      alert('Failed to approve campaign. Please try again.');
     }
   };
   
@@ -496,8 +506,7 @@ export const CampaignDetailPage: React.FC = () => {
                   <Button 
                     fullWidth
                     variant={campaign.status === 'active' ? 'outline' : 'primary'}
-                    // In a real app, this would update the campaign status
-                    onClick={() => alert('This would approve/activate the campaign')}
+                    onClick={handleApproveCampaign}
                     disabled={campaign.status === 'active'}
                   >
                     {campaign.status === 'active' ? 'Already Active' : 'Approve Campaign'}

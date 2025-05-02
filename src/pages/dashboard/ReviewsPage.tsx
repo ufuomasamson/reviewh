@@ -31,16 +31,18 @@ export const ReviewsPage: React.FC = () => {
         
         if (user?.role === 'reviewer') {
           // Filter to only show this reviewer's reviews
-          fetchedReviews = fetchedReviews.filter(review => review.reviewerId === user.id);
+          fetchedReviews = fetchedReviews.filter(review => review.reviewer_id === user.id);
         } else if (user?.role === 'business') {
           // Filter to only show reviews for this business's campaigns
           const businessCampaignIds = allCampaigns
-            .filter(campaign => campaign.businessId === user.id)
+            .filter(campaign => campaign.business_id === user.id)
             .map(campaign => campaign.id);
           
           fetchedReviews = fetchedReviews.filter(review => 
-            businessCampaignIds.includes(review.campaignId)
+            businessCampaignIds.includes(review.campaign_id)
           );
+          console.log('Business campaign IDs:', businessCampaignIds);
+          console.log('Fetched reviews:', fetchedReviews);
         }
         
         setReviews(fetchedReviews);
@@ -69,7 +71,7 @@ export const ReviewsPage: React.FC = () => {
     }
     
     if (campaignFilter !== 'all') {
-      results = results.filter(review => review.campaignId === campaignFilter);
+      results = results.filter(review => review.campaign_id === campaignFilter);
     }
     
     setFilteredReviews(results);
@@ -148,7 +150,6 @@ export const ReviewsPage: React.FC = () => {
             ]}
             value={statusFilter}
             onChange={handleStatusChange}
-            icon={<Filter className="h-5 w-5" />}
           />
         </div>
         

@@ -27,6 +27,7 @@ import { SettingsPage } from './pages/dashboard/SettingsPage';
 // Admin Pages
 import { UsersPage } from './pages/admin/UsersPage';
 import { VerificationsPage } from './pages/admin/VerificationsPage';
+import { AdminCampaignsPage } from './pages/admin/AdminCampaignsPage';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: string | string[] }> = ({ 
@@ -94,6 +95,11 @@ function App() {
           <Route path="verifications" element={
             <ProtectedRoute requiredRole="admin">
               <VerificationsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/campaigns" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminCampaignsPage />
             </ProtectedRoute>
           } />
         </Route>

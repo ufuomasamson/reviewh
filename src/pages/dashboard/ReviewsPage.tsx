@@ -1,0 +1,220 @@
+import React, { useEffect, useState } from 'react';
+import { Star, Search, Filter, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import { useCampaignStore } from '../../store/campaignStore';
+import { Review, Campaign } from '../../lib/types';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { ReviewCard } from '../../components/review/ReviewCard';
+import { Alert } from '../../components/ui/Alert';
+
+export const ReviewsPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const { getReviews, getCampaigns, updateReviewStatus, isLoading, error } = useCampaignStore();
+  
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [campaignFilter, setCampaignFilter] = useState('all');
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch all campaigns for the dropdown filter
+        const allCampaigns = await getCampaigns();
+        setCampaigns(allCampaigns);
+        
+        // Fetch reviews based on user role
+        let fetchedReviews = await getReviews();
+        
+        if (user?.role === 'reviewer') {
+          // Filter to only show this reviewer's reviews
+          fetchedReviews = fetchedReviews.filter(review => review.reviewerId === user.id);
+        } else if (user?.role === 'business') {
+          // Filter to only show reviews for this business's campaigns
+          const businessCampaignIds = allCampaigns
+            .filter(campaign => campaign.businessId === user.id)
+            .map(campaign => campaign.id);
+          
+          fetchedReviews = fetchedReviews.filter(review => 
+            businessCampaignIds.includes(review.campaignId)
+          );
+        }
+        
+        setReviews(fetchedReviews);
+        setFilteredReviews(fetchedReviews);
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+      }
+    };
+    
+    fetchData();
+  }, [user]);
+  
+  useEffect(() => {
+    // Apply filters whenever search query or filters change
+    let results = reviews;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter(review => 
+        review.content.toLowerCase().includes(query)
+      );
+    }
+    
+    if (statusFilter !== 'all') {
+      results = results.filter(review => review.status === statusFilter);
+    }
+    
+    if (campaignFilter !== 'all') {
+      results = results.filter(review => review.campaignId === campaignFilter);
+    }
+    
+    setFilteredReviews(results);
+  }, [searchQuery, statusFilter, campaignFilter, reviews]);
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+  };
+  
+  const handleCampaignChange = (value: string) => {
+    setCampaignFilter(value);
+  };
+  
+  const handleApproveReview = async (reviewId: string) => {
+    try {
+      const updatedReview = await updateReviewStatus(reviewId, 'approved');
+      
+      // Update the reviews list with the updated review
+      setReviews(reviews.map(rev => 
+        rev.id === reviewId ? updatedReview : rev
+      ));
+    } catch (error) {
+      console.error('Failed to approve review:', error);
+    }
+  };
+  
+  const handleRejectReview = async (reviewId: string) => {
+    try {
+      const updatedReview = await updateReviewStatus(reviewId, 'rejected');
+      
+      // Update the reviews list with the updated review
+      setReviews(reviews.map(rev => 
+        rev.id === reviewId ? updatedReview : rev
+      ));
+    } catch (error) {
+      console.error('Failed to reject review:', error);
+    }
+  };
+  
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {user?.role === 'admin' ? 'Manage Reviews' : 
+           user?.role === 'business' ? 'Campaign Reviews' : 'Your Reviews'}
+        </h1>
+      </div>
+      
+      {error && (
+        <Alert variant="error">
+          {error}
+        </Alert>
+      )}
+      
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="md:flex-1">
+          <Input
+            placeholder="Search reviews..."
+            icon={<Search className="h-5 w-5" />}
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+        </div>
+        
+        <div className="md:w-48">
+          <Select
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+            ]}
+            value={statusFilter}
+            onChange={handleStatusChange}
+            icon={<Filter className="h-5 w-5" />}
+          />
+        </div>
+        
+        <div className="md:w-64">
+          <Select
+            options={[
+              { value: 'all', label: 'All Campaigns' },
+              ...campaigns.map(campaign => ({
+                value: campaign.id,
+                label: campaign.title,
+              })),
+            ]}
+            value={campaignFilter}
+            onChange={handleCampaignChange}
+          />
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <svg 
+            className="animate-spin h-8 w-8 text-blue-600" 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24"
+          >
+            <circle 
+              className="opacity-25" 
+              cx="12" 
+              cy="12" 
+              r="10" 
+              stroke="currentColor" 
+              strokeWidth="4"
+            />
+            <path 
+              className="opacity-75" 
+              fill="currentColor" 
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        </div>
+      ) : filteredReviews.length > 0 ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReviews.map((review) => (
+            <ReviewCard 
+              key={review.id} 
+              review={review}
+              showActions={user?.role === 'admin' && review.status === 'pending'}
+              onApprove={() => handleApproveReview(review.id)}
+              onReject={() => handleRejectReview(review.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">No reviews found</h3>
+          <p className="mt-1 text-gray-500">
+            {searchQuery || statusFilter !== 'all' || campaignFilter !== 'all'
+              ? 'Try adjusting your filters to see more results.'
+              : user?.role === 'reviewer'
+                ? 'You haven\'t written any reviews yet.'
+                : 'There are no reviews yet.'}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};

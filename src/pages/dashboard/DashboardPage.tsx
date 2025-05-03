@@ -9,14 +9,15 @@ import { StatCard } from '../../components/dashboard/StatCard';
 import { CampaignCard } from '../../components/campaign/CampaignCard';
 import { ReviewCard } from '../../components/review/ReviewCard';
 import { formatCurrency } from '../../lib/utils';
+import { Campaign, Review } from '../../lib/types';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const { getCampaigns, getBusinessCampaigns, getReviews } = useCampaignStore();
   const { getWalletBalance, getTotalEarnings } = useWalletStore();
   
-  const [campaigns, setCampaigns] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
   
@@ -35,7 +36,7 @@ export const DashboardPage: React.FC = () => {
         setCampaigns(allCampaigns.filter(c => c.status === 'active').slice(0, 3));
         
         const reviewerReviews = await getReviews();
-        setReviews(reviewerReviews.filter(r => r.reviewerId === user.id).slice(0, 3));
+        setReviews(reviewerReviews.filter(r => r.reviewer_id === user.id).slice(0, 3));
         
         const balance = await getWalletBalance(user.id);
         setWalletBalance(balance);
@@ -78,7 +79,7 @@ export const DashboardPage: React.FC = () => {
             />
             <StatCard 
               title="Total Reviews" 
-              value={campaigns.reduce((acc, camp) => acc + camp.completedReviews, 0)} 
+              value={campaigns.reduce((acc, camp) => acc + camp.completed_reviews, 0)} 
               icon={<Star className="h-6 w-6" />} 
             />
             <StatCard 

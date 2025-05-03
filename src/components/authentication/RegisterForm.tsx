@@ -15,7 +15,46 @@ interface RegisterFormData {
   password: string;
   confirmPassword: string;
   role: 'business' | 'reviewer';
+  country?: string;
 }
+
+const countryOptions = [
+  { value: '', label: 'Select a country', code: '' },
+  { value: 'NG', label: 'Nigeria', code: 'NG' },
+  { value: 'US', label: 'United States', code: 'US' },
+  { value: 'GB', label: 'United Kingdom', code: 'GB' },
+  { value: 'CA', label: 'Canada', code: 'CA' },
+  { value: 'IN', label: 'India', code: 'IN' },
+  { value: 'DE', label: 'Germany', code: 'DE' },
+  { value: 'FR', label: 'France', code: 'FR' },
+  { value: 'ZA', label: 'South Africa', code: 'ZA' },
+  { value: 'AU', label: 'Australia', code: 'AU' },
+  { value: 'BR', label: 'Brazil', code: 'BR' },
+  { value: 'KE', label: 'Kenya', code: 'KE' },
+  { value: 'GH', label: 'Ghana', code: 'GH' },
+  { value: 'EG', label: 'Egypt', code: 'EG' },
+  { value: 'RU', label: 'Russia', code: 'RU' },
+  { value: 'CN', label: 'China', code: 'CN' },
+  { value: 'JP', label: 'Japan', code: 'JP' },
+  { value: 'IT', label: 'Italy', code: 'IT' },
+  { value: 'ES', label: 'Spain', code: 'ES' },
+  { value: 'TR', label: 'Turkey', code: 'TR' },
+  { value: 'MX', label: 'Mexico', code: 'MX' },
+  { value: 'AR', label: 'Argentina', code: 'AR' },
+  { value: 'SA', label: 'Saudi Arabia', code: 'SA' },
+  { value: 'KR', label: 'South Korea', code: 'KR' },
+  { value: 'SE', label: 'Sweden', code: 'SE' },
+  { value: 'NL', label: 'Netherlands', code: 'NL' },
+  { value: 'CH', label: 'Switzerland', code: 'CH' },
+  { value: 'BE', label: 'Belgium', code: 'BE' },
+  { value: 'PL', label: 'Poland', code: 'PL' },
+  { value: 'UA', label: 'Ukraine', code: 'UA' },
+  { value: 'PK', label: 'Pakistan', code: 'PK' },
+  { value: 'ID', label: 'Indonesia', code: 'ID' },
+  { value: 'SG', label: 'Singapore', code: 'SG' },
+  { value: 'NZ', label: 'New Zealand', code: 'NZ' },
+  // ...add more as needed
+];
 
 export const RegisterForm: React.FC = () => {
   const { register: registerUser, isLoading, error } = useAuthStore();
@@ -27,10 +66,12 @@ export const RegisterForm: React.FC = () => {
     register, 
     handleSubmit, 
     watch,
+    setValue,
     formState: { errors } 
   } = useForm<RegisterFormData>();
   
   const password = watch('password');
+  const role = watch('role');
   
   const onSubmit = async (data: RegisterFormData) => {
     setShowError(false);
@@ -41,6 +82,7 @@ export const RegisterForm: React.FC = () => {
           email: data.email,
           role: data.role,
           isVerified: false,
+          ...(data.role === 'reviewer' && { country: data.country })
         },
         data.password
       );
@@ -120,15 +162,23 @@ export const RegisterForm: React.FC = () => {
               { value: 'reviewer', label: 'Reviewer' },
             ]}
             error={errors.role?.message}
-            {...register('role', {
-              required: 'Please select your role',
-            })}
-            onChange={(value) => {
-              const event = { target: { value } };
-              register('role').onChange(event);
-            }}
+            value={role || ''}
+            onChange={(value) => setValue('role', value as 'business' | 'reviewer', { shouldValidate: true })}
           />
         </div>
+        
+        {role === 'reviewer' && (
+          <div>
+            <Select
+              label="Country"
+              id="country"
+              options={countryOptions.map(({ value, label }) => ({ value, label }))}
+              error={errors.country?.message}
+              value={watch('country') || ''}
+              onChange={(value) => setValue('country', value, { shouldValidate: true })}
+            />
+          </div>
+        )}
         
         <div>
           <Input

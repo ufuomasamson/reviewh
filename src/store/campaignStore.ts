@@ -17,7 +17,7 @@ interface CampaignState {
   deleteCampaign: (id: string) => Promise<void>;
   
   // Review actions
-  getReviews: (campaignId?: string) => Promise<Review[]>;
+  getReviews: (campaignId?: string, isAdmin?: boolean) => Promise<Review[]>;
   getReviewById: (id: string) => Promise<Review | undefined>;
   createReview: (review: Omit<Review, 'id' | 'created_at' | 'updated_at'>) => Promise<Review>;
   updateReviewStatus: (id: string, status: Review['status']) => Promise<Review>;
@@ -221,36 +221,39 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   },
   
   // Review methods
-  getReviews: async (campaignId?: string) => {
+  getReviews: async (campaignId?: string, isAdmin?: boolean) => {
     set({ isLoading: true, error: null });
     try {
-      let query = supabase
-        .from('reviews')
-        .select(`
+      let query;
+      if (isAdmin) {
+        query = supabase.from('reviews').select(`
+          *,
+          reviewer:reviewers!reviews_reviewer_id_fkey(
+            id,
+            name,
+            country
+          )
+        `);
+      } else {
+        query = supabase.from('reviews').select(`
           *,
           reviewer:reviewers!reviews_reviewer_id_fkey(
             id,
             bio,
             review_count,
-            user:users!reviewers_id_fkey(
-              id,
-              name,
-              email
-            )
+            name,
+            country
           )
         `);
-      
+      }
       if (campaignId) {
         query = query.eq('campaign_id', campaignId);
       }
-      
       const { data: reviews, error } = await query.order('created_at', { ascending: false });
-      
       if (error) {
         console.error('Error fetching reviews:', error);
         throw error;
       }
-      
       return reviews || [];
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
@@ -266,7 +269,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     try {
       const { data: review, error } = await supabase
         .from('reviews')
-        .select('*, reviewer:reviewers(name)')
+        .select('*, reviewer:reviewers(name, country)')
         .eq('id', id)
         .single();
       
@@ -287,7 +290,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
       const { data: review, error } = await supabase
         .from('reviews')
         .insert([reviewData])
-        .select('*, reviewer:reviewers(name)')
+        .select('*, reviewer:reviewers(name, country)')
         .single();
       
       if (error) throw error;
@@ -308,14 +311,16 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   updateReviewStatus: async (id, status) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: review, error } = await supabase
+      const { data: reviews, error } = await supabase
         .from('reviews')
         .update({ status })
         .eq('id', id)
-        .select('*, reviewer:reviewers(name)')
-        .single();
+        .select('*, reviewer:reviewers(name, country)');
+      
+      const review = reviews && reviews.length > 0 ? reviews[0] : null;
       
       if (error) throw error;
+      if (!review) throw new Error('No review returned after update');
       
       // If review is approved, update campaign completed_reviews
       if (status === 'approved') {

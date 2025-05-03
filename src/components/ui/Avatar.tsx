@@ -10,6 +10,7 @@ interface AvatarProps {
   name?: string;
   size?: AvatarSize;
   className?: string;
+  countryCode?: string;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
@@ -18,6 +19,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   name,
   size = 'md',
   className,
+  countryCode,
 }) => {
   const sizeStyles = {
     'xs': 'h-6 w-6 text-xs',
@@ -29,6 +31,17 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   const initials = name ? getInitials(name) : '';
 
+  // Helper to get emoji flag from country code
+  function getFlagEmoji(countryCode?: string) {
+    if (!countryCode) return '';
+    // Convert country code to regional indicator symbols
+    return countryCode
+      .toUpperCase()
+      .replace(/./g, char =>
+        String.fromCodePoint(127397 + char.charCodeAt(0))
+      );
+  }
+
   return (
     <div
       className={cn(
@@ -37,7 +50,9 @@ export const Avatar: React.FC<AvatarProps> = ({
         className
       )}
     >
-      {src ? (
+      {countryCode ? (
+        <span style={{ fontSize: '1.5em' }}>{getFlagEmoji(countryCode)}</span>
+      ) : src ? (
         <img
           src={src}
           alt={alt}

@@ -16,7 +16,7 @@ interface ReviewCardProps {
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({ 
   review, 
-  reviewerName = 'Anonymous Reviewer',
+  reviewerName,
   showActions = false,
   onApprove,
   onReject
@@ -26,14 +26,23 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     'approved': { variant: 'success', label: 'Approved' },
     'rejected': { variant: 'danger', label: 'Rejected' },
   };
-  
+
+  // Use reviewer name from review object if available, else fallback
+  const displayName = review.reviewer?.name || review.reviewer?.email || reviewerName || 'Anonymous Reviewer';
+  const displayCountry = review.reviewer?.country;
+  const displayCountryCode = review.reviewer?.country;
+  const displayDate = review.created_at ? formatDate(review.created_at) : 'Unknown date';
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between">
         <div className="flex items-center">
-          <Avatar name={reviewerName} size="sm" />
+          <Avatar name={displayName} size="sm" countryCode={displayCountryCode} />
           <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">{reviewerName}</p>
+            <p className="text-sm font-medium text-gray-900">{displayName}</p>
+            {displayCountry && (
+              <p className="text-xs text-gray-500">{displayCountry}</p>
+            )}
             <div className="flex items-center mt-1">
               {[...Array(5)].map((_, i) => (
                 <Star 
@@ -55,7 +64,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       
       <CardFooter className="border-t pt-4 flex justify-between items-center">
         <div className="text-sm text-gray-500">
-          {formatDate(review.createdAt)}
+          {displayDate}
         </div>
         
         {showActions && review.status === 'pending' ? (

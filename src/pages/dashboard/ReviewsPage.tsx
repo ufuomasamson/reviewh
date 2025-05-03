@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { ReviewCard } from '../../components/review/ReviewCard';
 import { Alert } from '../../components/ui/Alert';
+import { supabase } from '../../lib/supabase';
 
 export const ReviewsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -19,6 +20,14 @@ export const ReviewsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [campaignFilter, setCampaignFilter] = useState('all');
   
+  // Debug: Log the Supabase session for authentication troubleshooting
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log('Supabase session:', data?.session);
+      if (error) console.error('Session error:', error);
+    });
+  }, []);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -27,7 +36,12 @@ export const ReviewsPage: React.FC = () => {
         setCampaigns(allCampaigns);
         
         // Fetch reviews based on user role
-        let fetchedReviews = await getReviews();
+        let fetchedReviews;
+        if (user?.role === 'admin') {
+          fetchedReviews = await getReviews(undefined, true);
+        } else {
+          fetchedReviews = await getReviews();
+        }
         
         if (user?.role === 'reviewer') {
           // Filter to only show this reviewer's reviews

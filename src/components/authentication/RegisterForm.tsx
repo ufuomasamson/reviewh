@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Mail, Lock, User, Briefcase } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -67,7 +67,8 @@ export const RegisterForm: React.FC = () => {
     handleSubmit, 
     watch,
     setValue,
-    formState: { errors } 
+    formState: { errors },
+    control
   } = useForm<RegisterFormData>();
   
   const password = watch('password');
@@ -154,16 +155,23 @@ export const RegisterForm: React.FC = () => {
         </div>
         
         <div>
-          <Select
-            label="I am a..."
-            id="role"
-            options={[
-              { value: 'business', label: 'Business Owner' },
-              { value: 'reviewer', label: 'Reviewer' },
-            ]}
-            error={errors.role?.message}
-            value={role || ''}
-            onChange={(value) => setValue('role', value as 'business' | 'reviewer', { shouldValidate: true })}
+          <Controller
+            name="role"
+            control={control}
+            rules={{ required: 'Please select a role' }}
+            render={({ field }) => (
+              <Select
+                label="I am a..."
+                id="role"
+                options={[
+                  { value: 'business', label: 'Business Owner' },
+                  { value: 'reviewer', label: 'Reviewer' },
+                ]}
+                error={errors.role?.message}
+                value={field.value || ''}
+                onChange={field.onChange}
+              />
+            )}
           />
         </div>
         

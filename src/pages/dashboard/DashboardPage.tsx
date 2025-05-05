@@ -62,6 +62,18 @@ export const DashboardPage: React.FC = () => {
     if (user.role === 'business') {
       return (
         <div className="space-y-8">
+          {/* Verification Prompt */}
+          {!user.isVerified && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-yellow-800">Verify Your Business Account</h2>
+                <p className="text-yellow-700 mt-1">To unlock all features and start running campaigns, please verify your business by submitting the required documents.</p>
+              </div>
+              <Link to="/dashboard/verify">
+                <Button variant="outline">Submit Documents</Button>
+              </Link>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
             <Link to="/campaigns/create">

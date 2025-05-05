@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './store/authStore';
+import { useAuthStore, initAuth } from './store/authStore';
 
 // Layouts
 import { MainLayout } from './components/layout/MainLayout';
@@ -23,6 +23,7 @@ import { CreateCampaignPage } from './pages/dashboard/CreateCampaignPage';
 import { ReviewsPage } from './pages/dashboard/ReviewsPage';
 import { WalletPage } from './pages/dashboard/WalletPage';
 import { SettingsPage } from './pages/dashboard/SettingsPage';
+import { VerifyBusinessPage } from './pages/dashboard/VerifyBusinessPage';
 
 // Admin Pages
 import { UsersPage } from './pages/admin/UsersPage';
@@ -51,6 +52,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: strin
 };
 
 function App() {
+  const isAuthHydrated = useAuthStore(state => state.isAuthHydrated);
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
+  useEffect(() => {
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    console.log('Auth hydrated:', isAuthHydrated, 'User:', user, 'isAuthenticated:', isAuthenticated);
+  }, [isAuthHydrated, user, isAuthenticated]);
+
+  if (!isAuthHydrated) {
+    return <div className="flex items-center justify-center min-h-screen text-lg">Loading authentication...</div>;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -84,6 +101,13 @@ function App() {
           
           {/* Settings */}
           <Route path="settings" element={<SettingsPage />} />
+          
+          {/* Verify Business */}
+          <Route path="verify" element={
+            <ProtectedRoute requiredRole="business">
+              <VerifyBusinessPage />
+            </ProtectedRoute>
+          } />
           
           {/* Admin-only routes */}
           <Route path="users" element={

@@ -7,6 +7,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isAuthHydrated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (userData: Partial<User>, password: string) => Promise<void>;
@@ -18,6 +19,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  isAuthHydrated: false,
   
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -299,3 +301,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   }
 }));
+
+export const initAuth = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    // Fetch the user's complete profile data
+    const { data: userData, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    console.log('initAuth userData:', userData, 'profileError:', profileError); // Debug log
+    if (!profileError && userData) {
+      useAuthStore.setState({
+        user: {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          isVerified: userData.is_verified,
+          createdAt: userData.created_at
+        },
+        isAuthenticated: true,
+        isLoading: false,
+        isAuthHydrated: true
+      });
+      return;
+    }
+  }
+  // If no session or user, still set hydrated
+  useAuthStore.setState({ isAuthHydrated: true });
+};

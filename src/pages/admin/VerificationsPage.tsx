@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileCheck, Search, Filter, Check, X, Eye, ExternalLink } from 'lucide-react';
-import { mockBusinesses } from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
 import { Business } from '../../lib/types';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -18,127 +18,161 @@ interface BusinessWithVerification extends Business {
 }
 
 export const VerificationsPage: React.FC = () => {
-  // Create mock verification data
   const [verifications, setVerifications] = useState<BusinessWithVerification[]>([]);
   const [filteredVerifications, setFilteredVerifications] = useState<BusinessWithVerification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    // In a real app, this would be an API call
     const fetchVerifications = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Create mock verification data
-        const verificationData: BusinessWithVerification[] = [
-          {
-            ...mockBusinesses[0],
-            verificationDocuments: ['cac_certificate.pdf', 'business_id.pdf'],
-            verificationStatus: 'approved',
-            submittedAt: new Date(2024, 1, 16).toISOString(),
-            verificationNotes: 'All documents verified. Legitimate business confirmed.',
-          },
-          {
-            ...mockBusinesses[1],
-            verificationDocuments: ['cac_certificate.pdf'],
-            verificationStatus: 'pending',
-            submittedAt: new Date(2024, 2, 6).toISOString(),
-            verificationNotes: '',
-          },
-          {
-            id: 'business3',
-            name: 'Alex Thompson',
-            email: 'alex@techbyte.com',
+        // Join users and businesses tables
+        const { data, error: fetchError } = await supabase
+          .from('businesses')
+          .select(`
+            id,
+            company_name,
+            description,
+            website,
+            verification_documents,
+            wallet_balance,
+            created_at,
+            users:users!inner(
+              id,
+              name,
+              email,
+              is_verified,
+              created_at
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (fetchError) throw fetchError;
+        if (!data) {
+          setVerifications([]);
+          setFilteredVerifications([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Map to UI format
+        const verificationData: BusinessWithVerification[] = data.map((b: any) => {
+          const user = b.users || {};
+          // Determine status from is_verified or verification_documents
+          let verificationStatus: 'pending' | 'approved' | 'rejected' = 'pending';
+          if (user.is_verified) verificationStatus = 'approved';
+          // If you have a field for rejected, add logic here
+          return {
+            id: b.id,
+            name: user.name,
+            email: user.email,
             role: 'business',
-            companyName: 'TechByte Solutions',
-            description: 'Software development agency',
-            website: 'https://techbyte.example.com',
-            isVerified: false,
-            walletBalance: 0,
-            createdAt: new Date(2024, 3, 1).toISOString(),
-            verificationDocuments: ['cac_certificate.pdf', 'business_id.pdf', 'utility_bill.pdf'],
-            verificationStatus: 'pending',
-            submittedAt: new Date(2024, 3, 2).toISOString(),
-            verificationNotes: '',
-          },
-        ];
-        
+            companyName: b.company_name,
+            description: b.description,
+            website: b.website,
+            isVerified: user.is_verified,
+            walletBalance: b.wallet_balance,
+            createdAt: user.created_at,
+            verificationDocuments: Array.isArray(b.verification_documents)
+              ? b.verification_documents
+              : (b.verification_documents ? Object.values(b.verification_documents) : []),
+            verificationStatus,
+            verificationNotes: '', // Add logic if you have notes
+            submittedAt: b.created_at,
+          };
+        });
         setVerifications(verificationData);
         setFilteredVerifications(verificationData);
-      } catch (error) {
-        console.error('Failed to fetch verifications:', error);
+      } catch (err: any) {
+        setError('Failed to fetch verifications: ' + (err.message || err));
+        setVerifications([]);
+        setFilteredVerifications([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
     fetchVerifications();
   }, []);
-  
+
   useEffect(() => {
-    // Apply filters when search query or status filter changes
     let results = verifications;
-    
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      results = results.filter(verification => 
-        verification.name.toLowerCase().includes(query) || 
-        verification.email.toLowerCase().includes(query) ||
-        verification.companyName.toLowerCase().includes(query)
+      results = results.filter(verification =>
+        verification.name?.toLowerCase().includes(query) ||
+        verification.email?.toLowerCase().includes(query) ||
+        verification.companyName?.toLowerCase().includes(query)
       );
     }
-    
     if (statusFilter !== 'all') {
       results = results.filter(verification => verification.verificationStatus === statusFilter);
     }
-    
     setFilteredVerifications(results);
   }, [searchQuery, statusFilter, verifications]);
-  
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
-  
+
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
   };
-  
-  const handleApprove = (id: string) => {
-    // In a real app, this would call an API to approve the verification
-    setVerifications(verifications.map(verification => 
-      verification.id === id 
-        ? { 
-            ...verification, 
-            verificationStatus: 'approved', 
-            isVerified: true 
-          } 
-        : verification
-    ));
+
+  const handleApprove = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Update is_verified in users table
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ is_verified: true })
+        .eq('id', id);
+      if (updateError) throw updateError;
+      // Optionally update verification status in businesses table if you have such a field
+      setVerifications(verifications.map(verification =>
+        verification.id === id
+          ? { ...verification, verificationStatus: 'approved', isVerified: true }
+          : verification
+      ));
+    } catch (err: any) {
+      setError('Failed to approve business: ' + (err.message || err));
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  const handleReject = (id: string) => {
-    // In a real app, this would call an API to reject the verification
-    setVerifications(verifications.map(verification => 
-      verification.id === id 
-        ? { 
-            ...verification, 
-            verificationStatus: 'rejected', 
-            isVerified: false 
-          } 
-        : verification
-    ));
+
+  const handleReject = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Update is_verified in users table
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ is_verified: false })
+        .eq('id', id);
+      if (updateError) throw updateError;
+      // Optionally update verification status in businesses table if you have such a field
+      setVerifications(verifications.map(verification =>
+        verification.id === id
+          ? { ...verification, verificationStatus: 'rejected', isVerified: false }
+          : verification
+      ));
+    } catch (err: any) {
+      setError('Failed to reject business: ' + (err.message || err));
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Business Verifications</h1>
       </div>
-      
       <div className="flex flex-col md:flex-row gap-4">
         <div className="md:flex-1">
           <Input
@@ -148,7 +182,6 @@ export const VerificationsPage: React.FC = () => {
             onChange={handleSearch}
           />
         </div>
-        
         <div className="md:w-64">
           <Select
             options={[
@@ -159,30 +192,31 @@ export const VerificationsPage: React.FC = () => {
             ]}
             value={statusFilter}
             onChange={handleStatusChange}
-            icon={<Filter className="h-5 w-5" />}
           />
         </div>
       </div>
-      
+      {error && (
+        <div className="text-red-600 text-center py-2">{error}</div>
+      )}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <svg 
-            className="animate-spin h-8 w-8 text-blue-600" 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
+          <svg
+            className="animate-spin h-8 w-8 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
             viewBox="0 0 24 24"
           >
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
               strokeWidth="4"
             />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
+            <path
+              className="opacity-75"
+              fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
@@ -206,7 +240,6 @@ export const VerificationsPage: React.FC = () => {
                    'Pending'}
                 </div>
               </CardHeader>
-              
               <CardContent className="space-y-4">
                 <div className="flex items-center">
                   <Avatar name={verification.name} size="md" />
@@ -215,11 +248,10 @@ export const VerificationsPage: React.FC = () => {
                     <p className="text-sm text-gray-500">{verification.email}</p>
                   </div>
                 </div>
-                
                 <div className="border-t border-b py-4">
                   <h3 className="text-sm font-medium mb-2">Submitted Documents</h3>
                   <ul className="space-y-2">
-                    {verification.verificationDocuments?.map((doc, index) => (
+                    {verification.verificationDocuments?.length ? verification.verificationDocuments.map((doc, index) => (
                       <li key={index} className="flex items-center text-sm">
                         <FileCheck className="h-4 w-4 text-green-500 mr-2" />
                         <span className="text-gray-600">{doc}</span>
@@ -227,16 +259,15 @@ export const VerificationsPage: React.FC = () => {
                           <Eye className="h-4 w-4" />
                         </button>
                       </li>
-                    ))}
+                    )) : <li className="text-gray-400 text-sm">No documents submitted</li>}
                   </ul>
                 </div>
-                
                 {verification.website && (
                   <div className="flex items-center text-sm">
                     <span className="text-gray-500 mr-2">Website:</span>
-                    <a 
-                      href={verification.website} 
-                      target="_blank" 
+                    <a
+                      href={verification.website}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 flex items-center"
                     >
@@ -245,7 +276,6 @@ export const VerificationsPage: React.FC = () => {
                     </a>
                   </div>
                 )}
-                
                 {verification.verificationNotes && (
                   <div className="bg-gray-50 p-3 rounded-md">
                     <h3 className="text-sm font-medium mb-1">Notes</h3>
@@ -253,7 +283,6 @@ export const VerificationsPage: React.FC = () => {
                   </div>
                 )}
               </CardContent>
-              
               {verification.verificationStatus === 'pending' && (
                 <CardFooter className="border-t pt-4 flex justify-end space-x-3">
                   <Button

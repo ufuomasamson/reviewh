@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const VerifyBusinessPage: React.FC = () => {
   const { user } = useAuthStore();
+  console.log('VerifyBusinessPage:', { user });
   const [filesRegistered, setFilesRegistered] = useState<FileList | null>(null);
   const [filesFreelancer, setFilesFreelancer] = useState<FileList | null>(null);
   const [isSubmittingRegistered, setIsSubmittingRegistered] = useState(false);

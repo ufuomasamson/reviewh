@@ -160,14 +160,14 @@ export const RegisterForm: React.FC = () => {
             control={control}
             rules={{ required: 'Please select a role' }}
             render={({ field }) => (
-              <Select
-                label="I am a..."
-                id="role"
-                options={[
-                  { value: 'business', label: 'Business Owner' },
-                  { value: 'reviewer', label: 'Reviewer' },
-                ]}
-                error={errors.role?.message}
+          <Select
+            label="I am a..."
+            id="role"
+            options={[
+              { value: 'business', label: 'Business Owner' },
+              { value: 'reviewer', label: 'Reviewer' },
+            ]}
+            error={errors.role?.message}
                 value={field.value || ''}
                 onChange={field.onChange}
               />

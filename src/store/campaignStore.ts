@@ -241,7 +241,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
             id,
             bio,
             review_count,
-            name,
+              name,
             country
           )
         `);

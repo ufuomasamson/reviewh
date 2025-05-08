@@ -32,7 +32,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const displayCountry = review.reviewer?.country;
   const displayCountryCode = review.reviewer?.country;
   const displayDate = review.created_at ? formatDate(review.created_at) : 'Unknown date';
-
+  
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between">

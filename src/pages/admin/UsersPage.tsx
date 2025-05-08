@@ -119,11 +119,18 @@ export const UsersPage: React.FC = () => {
     setVerificationFilter(value);
   };
   
-  const handleVerifyUser = (userId: string) => {
-    // In a real app, this would call an API to verify the user
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isVerified: true } : user
-    ));
+  const handleVerifyUser = async (userId: string) => {
+    const { error } = await supabase
+      .from('users')
+      .update({ is_verified: true })
+      .eq('id', userId);
+    if (!error) {
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, isVerified: true } : user
+      ));
+    } else {
+      alert('Failed to verify user');
+    }
   };
   
   return (

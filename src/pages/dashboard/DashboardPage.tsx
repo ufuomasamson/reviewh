@@ -10,6 +10,7 @@ import { CampaignCard } from '../../components/campaign/CampaignCard';
 import { ReviewCard } from '../../components/review/ReviewCard';
 import { formatCurrency } from '../../lib/utils';
 import { Campaign, Review } from '../../lib/types';
+import { supabase } from '../../lib/supabase';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -20,12 +21,20 @@ export const DashboardPage: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
+  const [businessProfile, setBusinessProfile] = useState<any>(null);
   
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
       
       if (user.role === 'business') {
+        // Fetch business profile
+        const { data: business, error } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setBusinessProfile(business);
         const businessCampaigns = await getBusinessCampaigns(user.id);
         setCampaigns(businessCampaigns.slice(0, 3)); // Show just the first 3
         
@@ -62,8 +71,25 @@ export const DashboardPage: React.FC = () => {
     if (user.role === 'business') {
       return (
         <div className="space-y-8">
-          {/* Verification Prompt */}
-          {!user.isVerified && (
+          {/* Verification Status */}
+          {!user.isVerified && businessProfile && businessProfile.verification_documents && businessProfile.verification_documents.length > 0 && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-yellow-800">Awaiting Verification</h2>
+                <p className="text-yellow-700 mt-1">Your documents have been submitted and are pending admin approval.</p>
+              </div>
+            </div>
+          )}
+          {user.isVerified && (
+            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-md flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-green-800">Account Verified</h2>
+                <p className="text-green-700 mt-1">Your business account has been approved. You can now access all features.</p>
+              </div>
+            </div>
+          )}
+          {/* Prompt to submit documents if not verified and no documents */}
+          {!user.isVerified && (!businessProfile || !businessProfile.verification_documents || businessProfile.verification_documents.length === 0) && (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-yellow-800">Verify Your Business Account</h2>

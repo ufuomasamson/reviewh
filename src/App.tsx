@@ -36,6 +36,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: strin
   requiredRole 
 }) => {
   const { isAuthenticated, user } = useAuthStore();
+  console.log('ProtectedRoute:', { isAuthenticated, user, requiredRole });
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -103,7 +104,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           
           {/* Verify Business */}
-          <Route path="verify" element={
+          <Route path="dashboard/verify" element={
             <ProtectedRoute requiredRole="business">
               <VerifyBusinessPage />
             </ProtectedRoute>

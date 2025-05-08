@@ -25,6 +25,10 @@ export const VerificationsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // TEMPORARY: Test button to debug storage access
+  // Remove after testing
+  const testPath = 'business-verifications/4dd87a05-56c2-401e-9242-f55288012c29/registered/WID6534545454544.png';
+
   useEffect(() => {
     const fetchVerifications = async () => {
       setIsLoading(true);
@@ -170,6 +174,25 @@ export const VerificationsPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* TEMPORARY TEST BUTTON - REMOVE AFTER TESTING */}
+      <Button
+        onClick={async () => {
+          const { data, error } = await supabase
+            .storage
+            .from('documents')
+            .createSignedUrl(testPath, 60 * 60); // 1 hour
+          if (data?.signedUrl) {
+            window.open(data.signedUrl, '_blank');
+          } else {
+            alert('Error: ' + (error?.message || 'Unknown error'));
+            console.log('Error:', error);
+          }
+        }}
+        variant="outline"
+        style={{ marginBottom: 16 }}
+      >
+        Test Open Document
+      </Button>
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Business Verifications</h1>
       </div>
@@ -255,7 +278,20 @@ export const VerificationsPage: React.FC = () => {
                       <li key={index} className="flex items-center text-sm">
                         <FileCheck className="h-4 w-4 text-green-500 mr-2" />
                         <span className="text-gray-600">{doc}</span>
-                        <button className="ml-auto text-blue-600 hover:text-blue-800">
+                        <button
+                          className="ml-auto text-blue-600 hover:text-blue-800"
+                          onClick={async () => {
+                            console.log('Document path:', doc); // Debug log
+                            // Try to get a signed URL (always works for private buckets)
+                            const { data, error } = await supabase.storage.from('documents').createSignedUrl(doc, 60 * 60);
+                            if (data?.signedUrl) {
+                              window.open(data.signedUrl, '_blank');
+                            } else {
+                              alert('Unable to open document. ' + (error?.message || ''));
+                              console.log('Signed URL error:', error);
+                            }
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                         </button>
                       </li>

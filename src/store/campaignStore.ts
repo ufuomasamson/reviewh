@@ -225,27 +225,16 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       let query;
-      if (isAdmin) {
-        query = supabase.from('reviews').select(`
-          *,
-          reviewer:reviewers!reviews_reviewer_id_fkey(
-            id,
-            name,
-            country
-          )
-        `);
-      } else {
-        query = supabase.from('reviews').select(`
-          *,
-          reviewer:reviewers!reviews_reviewer_id_fkey(
-            id,
-            bio,
-            review_count,
-              name,
-            country
-          )
-        `);
-      }
+      // Join reviewers table for reviewer info
+      query = supabase.from('reviews').select(`
+        *,
+        reviewer:reviewers!reviews_reviewer_id_fkey(
+          id,
+          name,
+          email,
+          country
+        )
+      `);
       if (campaignId) {
         query = query.eq('campaign_id', campaignId);
       }

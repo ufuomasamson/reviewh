@@ -142,6 +142,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (userData.role === 'reviewer') {
         const { error: reviewerInsertError } = await supabase.from('reviewers').insert({
           id: signUpData.user?.id,
+          name: userData.name,
+          email: userData.email,
           bio: '',
           review_count: 0,
           wallet_balance: 0,

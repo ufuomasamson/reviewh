@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { User, Business, Reviewer, Admin } from '../lib/types';
+import { User } from '../lib/types';
 
 interface AuthState {
   user: User | null;
@@ -8,10 +8,12 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   isAuthHydrated: boolean;
+
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (userData: Partial<User>, password: string) => Promise<void>;
+  register: (userData: Partial<User> & { country?: string }, password: string) => Promise<void>;
   ensureBusinessProfile: () => Promise<void>;
+  updateVerificationStatus: (userId: string, isVerified: boolean) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -20,70 +22,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
   isAuthHydrated: false,
-  
-  login: async (email: string, password: string) => {
+
+  // --- Login Logic ---
+  login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      console.log('Attempting login for:', email);
-      
-      // First verify the user exists in the users table
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const { error: authError, data } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (userCheckError) {
-        console.error('Error checking user existence:', userCheckError);
-        throw new Error('Unable to verify user account');
-      }
-
-      if (!existingUser) {
-        console.error('No user found with email:', email);
-        throw new Error('No account found with this email');
-      }
-
-      // Attempt authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Auth error:', error);
-        if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password');
-        }
-        throw error;
+      if (authError) {
+        set({ isLoading: false, error: authError.message });
+        return;
       }
 
       if (!data.user) {
-        console.error('No user data returned from auth');
-        throw new Error('Authentication failed');
+        set({ isLoading: false, error: 'Login failed: No user returned.' });
+        return;
       }
 
-      console.log('Auth successful, fetching user profile...');
-
-      // Fetch the user's complete profile data
-      const { data: userData, error: profileError } = await supabase
+      const { error: profileError, data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
       if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        throw new Error('Failed to load user profile');
+        set({ isLoading: false, error: profileError.message });
+        return;
       }
 
-      if (!userData) {
-        console.error('No user profile found for ID:', data.user.id);
-        throw new Error('User profile not found');
-      }
-
-      console.log('Login successful:', userData);
-
-      set({ 
+      set({
         user: {
           id: userData.id,
           email: userData.email,
@@ -93,40 +60,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           createdAt: userData.created_at
         },
         isAuthenticated: true,
-        isLoading: false 
-      });
-    } catch (error) {
-      console.error('Login failed:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Authentication failed',
         isLoading: false,
-        user: null,
-        isAuthenticated: false
+        error: null
       });
-      throw error;
+    } catch (err) {
+      set({ error: 'Login failed.', isLoading: false });
     }
   },
-  
+
+  // --- Logout Logic ---
   logout: async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      set({ 
-        user: null,
-        isAuthenticated: false
-      });
-    } catch (error) {
-      console.error('Error signing out:', error);
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      set({ user: null, isAuthenticated: false });
+    } else {
+      console.error('Logout error:', error);
     }
   },
-  
-  register: async (userData: Partial<User>, password: string) => {
+
+  // --- Register Logic ---
+  register: async (userData: Partial<User> & { country?: string }, password) => {
     set({ isLoading: true, error: null });
+
     try {
-      console.log('Starting registration for:', userData.email);
-      
-      // First check if user already exists in the users table
+      // Check if user already exists
       const { data: existingUser } = await supabase
         .from('users')
         .select('email')
@@ -134,185 +91,183 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (existingUser) {
-        throw new Error('An account with this email already exists');
+        set({ isLoading: false, error: 'Email already in use.' });
+        return;
       }
 
-      // Register the user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
         email: userData.email!,
-        password: password,
+        password,
         options: {
           data: {
             name: userData.name,
-            role: userData.role,
-          },
-        },
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw authError;
-      }
-      if (!authData.user) {
-        console.error('No user data returned from auth');
-        throw new Error('No user data returned');
-      }
-
-      console.log('Auth successful, creating user profile...');
-
-      try {
-      // Create the user profile in the users table
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: authData.user.id,
-            email: userData.email,
-            name: userData.name,
-            role: userData.role,
-            is_verified: false,
-          },
-        ]);
-
-        if (profileError) {
-          // If profile creation fails, clean up the auth user
-          await supabase.auth.admin.deleteUser(authData.user.id);
-          console.error('Profile creation error:', profileError);
-          throw profileError;
-        }
-
-      // If user is a business, create business profile
-      if (userData.role === 'business') {
-          console.log('Creating business profile...');
-        const { error: businessError } = await supabase
-          .from('businesses')
-          .insert([
-            {
-              id: authData.user.id,
-                company_name: userData.name || '',
-                description: 'Business profile pending completion',
-              wallet_balance: 0,
-            },
-          ]);
-
-          if (businessError) {
-            // If business profile creation fails, clean up everything
-            await supabase.auth.admin.deleteUser(authData.user.id);
-            await supabase.from('users').delete().eq('id', authData.user.id);
-            console.error('Business profile creation error:', businessError);
-            throw businessError;
+            role: userData.role
           }
-      }
-
-      // If user is a reviewer, create reviewer profile
-      if (userData.role === 'reviewer') {
-          console.log('Creating reviewer profile...');
-        const { error: reviewerError } = await supabase
-          .from('reviewers')
-          .insert([
-            {
-              id: authData.user.id,
-              review_count: 0,
-              wallet_balance: 0,
-              total_earnings: 0,
-            },
-          ]);
-
-          if (reviewerError) {
-            // If reviewer profile creation fails, clean up everything
-            await supabase.auth.admin.deleteUser(authData.user.id);
-            await supabase.from('users').delete().eq('id', authData.user.id);
-            console.error('Reviewer profile creation error:', reviewerError);
-            throw reviewerError;
-      }
         }
-
-        console.log('Registration completed successfully');
-
-        // Set the user state directly after successful registration
-        set({ 
-          user: {
-            id: authData.user.id,
-            email: userData.email!,
-            name: userData.name!,
-            role: userData.role!,
-            isVerified: false,
-            createdAt: new Date().toISOString()
-          },
-          isAuthenticated: true,
-          isLoading: false 
-        });
-      } catch (error) {
-        // Clean up auth user if any profile creation fails
-        if (authData.user) {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-        }
-        throw error;
-      }
-    } catch (error) {
-      console.error('Registration failed:', error);
-      set({ 
-        error: error instanceof Error ? error.message : 'Registration failed',
-        isLoading: false
       });
-      throw error;
+
+      if (signUpError) {
+        set({ isLoading: false, error: signUpError.message });
+        return;
+      }
+
+      const { error: insertError } = await supabase.from('users').insert({
+        id: signUpData.user?.id,
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        is_verified: false
+      });
+
+      if (insertError) {
+        set({ isLoading: false, error: insertError.message });
+        return;
+      }
+
+      // --- Ensure business profile is created for business users ---
+      if (userData.role === 'business') {
+        const { error: businessInsertError } = await supabase.from('businesses').insert({
+          id: signUpData.user?.id,
+          company_name: userData.name,
+          description: 'Business profile pending completion',
+          wallet_balance: 0
+        });
+        if (businessInsertError) {
+          set({ isLoading: false, error: businessInsertError.message });
+          return;
+        }
+      }
+
+      // --- Ensure reviewer profile is created for reviewer users ---
+      if (userData.role === 'reviewer') {
+        const { error: reviewerInsertError } = await supabase.from('reviewers').insert({
+          id: signUpData.user?.id,
+          bio: '',
+          review_count: 0,
+          wallet_balance: 0,
+          total_earnings: 0,
+          country: userData.country || null
+        });
+        if (reviewerInsertError) {
+          set({ isLoading: false, error: reviewerInsertError.message });
+          return;
+        }
+      }
+
+      set({
+        user: {
+          id: signUpData.user?.id!,
+          email: userData.email!,
+          name: userData.name!,
+          role: userData.role!,
+          isVerified: false,
+          createdAt: new Date().toISOString()
+        },
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      });
+    } catch (err) {
+      set({ error: 'Registration failed.', isLoading: false });
     }
   },
 
+  // --- Business Profile Logic ---
   ensureBusinessProfile: async () => {
-    const { user } = get();
+    const state = get();
+    const { user } = state;
     if (!user || user.role !== 'business') return;
 
     try {
-      // Check if business profile exists
       const { data: business, error: fetchError } = await supabase
         .from('businesses')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('Error checking business profile:', fetchError);
+      if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
 
-      // If no business profile exists, create one
+      // Create if not exists
       if (!business) {
-        const { error: createError } = await supabase
-          .from('businesses')
-          .insert([{
-            id: user.id,
-            company_name: user.name, // Use user's name as initial company name
-            description: 'Business profile pending completion', // Default description
-            wallet_balance: 0
-          }]);
+        const { error: createError } = await supabase.from('businesses').insert({
+          id: user.id,
+          company_name: user.name,
+          description: 'Business profile pending completion',
+          wallet_balance: 0
+        });
 
         if (createError) {
-          console.error('Failed to create business profile:', createError);
           throw createError;
         }
       }
-
-      return business;
     } catch (error) {
-      console.error('Error ensuring business profile:', error);
-      set({ error: 'Failed to verify business profile' });
-      throw error;
+      set({ error: 'Failed to verify business profile.' });
+    }
+  },
+
+  // --- Admin Approval Logic (Fix for Your Issue) ---
+  updateVerificationStatus: async (userId, isVerified) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // ✅ Update Verification Column in Supabase
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ is_verified: isVerified })
+        .eq('id', userId);
+
+      if (updateError) {
+        set({ error: updateError.message });
+        return;
+      }
+
+      // 🔄 Update local store if this is the current user
+      const currentState = get();
+      if (currentState.user?.id === userId) {
+        const { data: refreshedUser, error: fetchError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (fetchError) {
+          set({ error: fetchError.message });
+          return;
+        }
+
+        set({
+          user: {
+            id: refreshedUser.id,
+            email: refreshedUser.email,
+            name: refreshedUser.name,
+            role: refreshedUser.role,
+            isVerified: refreshedUser.is_verified,
+            createdAt: refreshedUser.created_at
+          },
+          isLoading: false
+        });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (err) {
+      set({ error: 'Failed to update verification status.', isLoading: false });
     }
   }
 }));
 
+// --- Hydrate the Auth Store on Load ---
 export const initAuth = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user) {
-    // Fetch the user's complete profile data
-    const { data: userData, error: profileError } = await supabase
+    const { data: userData, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', session.user.id)
       .single();
-    console.log('initAuth userData:', userData, 'profileError:', profileError); // Debug log
-    if (!profileError && userData) {
+
+    if (!error && userData) {
       useAuthStore.setState({
         user: {
           id: userData.id,
@@ -323,12 +278,12 @@ export const initAuth = async () => {
           createdAt: userData.created_at
         },
         isAuthenticated: true,
-        isLoading: false,
         isAuthHydrated: true
       });
-      return;
+    } else {
+      useAuthStore.setState({ isAuthHydrated: true });
     }
+  } else {
+    useAuthStore.setState({ isAuthHydrated: true });
   }
-  // If no session or user, still set hydrated
-  useAuthStore.setState({ isAuthHydrated: true });
 };

@@ -11,6 +11,7 @@ import { formatDate } from '../../lib/utils';
 
 // Extended business type with verification documents
 interface BusinessWithVerification extends Business {
+  userId: string;
   verificationDocuments?: string[];
   verificationStatus?: 'pending' | 'approved' | 'rejected';
   verificationNotes?: string;
@@ -66,12 +67,14 @@ export const VerificationsPage: React.FC = () => {
         // Map to UI format
         const verificationData: BusinessWithVerification[] = data.map((b: any) => {
           const user = b.users || {};
+          console.log('Mapping business:', { businessId: b.id, user });
           // Determine status from is_verified or verification_documents
           let verificationStatus: 'pending' | 'approved' | 'rejected' = 'pending';
           if (user.is_verified) verificationStatus = 'approved';
           // If you have a field for rejected, add logic here
           return {
             id: b.id,
+            userId: user.id,
             name: user.name,
             email: user.email,
             role: 'business',
@@ -126,19 +129,19 @@ export const VerificationsPage: React.FC = () => {
     setStatusFilter(value);
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (userId: string, businessId: string) => {
     setIsLoading(true);
     setError(null);
     try {
       // Update is_verified in users table
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('users')
         .update({ is_verified: true })
-        .eq('id', id);
+        .eq('id', userId);
+      console.log('Approve result:', { updateData, updateError, userId, businessId });
       if (updateError) throw updateError;
-      // Optionally update verification status in businesses table if you have such a field
       setVerifications(verifications.map(verification =>
-        verification.id === id
+        verification.id === businessId
           ? { ...verification, verificationStatus: 'approved', isVerified: true }
           : verification
       ));
@@ -149,19 +152,19 @@ export const VerificationsPage: React.FC = () => {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (userId: string, businessId: string) => {
     setIsLoading(true);
     setError(null);
     try {
       // Update is_verified in users table
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('users')
         .update({ is_verified: false })
-        .eq('id', id);
+        .eq('id', userId);
+      console.log('Reject result:', { updateData, updateError, userId, businessId });
       if (updateError) throw updateError;
-      // Optionally update verification status in businesses table if you have such a field
       setVerifications(verifications.map(verification =>
-        verification.id === id
+        verification.id === businessId
           ? { ...verification, verificationStatus: 'rejected', isVerified: false }
           : verification
       ));
@@ -322,18 +325,14 @@ export const VerificationsPage: React.FC = () => {
               {verification.verificationStatus === 'pending' && (
                 <CardFooter className="border-t pt-4 flex justify-end space-x-3">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<X className="h-4 w-4" />}
-                    onClick={() => handleReject(verification.id)}
+                    onClick={() => handleReject(verification.userId, verification.id)}
+                    variant="danger"
                   >
                     Reject
                   </Button>
                   <Button
+                    onClick={() => handleApprove(verification.userId, verification.id)}
                     variant="success"
-                    size="sm"
-                    leftIcon={<Check className="h-4 w-4" />}
-                    onClick={() => handleApprove(verification.id)}
                   >
                     Approve
                   </Button>

@@ -133,10 +133,50 @@ export const UsersPage: React.FC = () => {
     }
   };
   
+  // Add these after users is set
+  const businessUsers = users.filter(user => user.role === 'business');
+  const reviewerUsers = users.filter(user => user.role === 'reviewer');
+  
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Manage Users</h1>
+      </div>
+      
+      {/* Counts and separate sections for businesses and reviewers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-2 flex items-center">
+            <Briefcase className="h-5 w-5 mr-2" /> Businesses
+          </h2>
+          <p className="text-3xl font-bold text-blue-700 mb-4">{businessUsers.length}</p>
+          {/* List businesses */}
+          {businessUsers.map(user => (
+            <div key={user.id} className="flex items-center py-2 border-b last:border-b-0">
+              <Avatar name={user.name} size="sm" />
+              <div className="ml-3">
+                <div className="font-medium">{user.name}</div>
+                <div className="text-gray-500 text-sm">{user.email}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-2 flex items-center">
+            <Star className="h-5 w-5 mr-2" /> Reviewers
+          </h2>
+          <p className="text-3xl font-bold text-green-700 mb-4">{reviewerUsers.length}</p>
+          {/* List reviewers */}
+          {reviewerUsers.map(user => (
+            <div key={user.id} className="flex items-center py-2 border-b last:border-b-0">
+              <Avatar name={user.name} size="sm" />
+              <div className="ml-3">
+                <div className="font-medium">{user.name}</div>
+                <div className="text-gray-500 text-sm">{user.email}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       
       <div className="flex flex-col md:flex-row gap-4">

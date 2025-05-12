@@ -472,25 +472,53 @@ export const CampaignDetailPage: React.FC = () => {
           )}
           
           {user?.role === 'business' && user.id === campaign.business_id && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Campaign Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-500">Total Budget</p>
-                  <p className="text-xl font-semibold">{formatCurrency(campaign.price_per_review * campaign.target_reviews)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Spent So Far</p>
-                  <p className="text-xl font-semibold">{formatCurrency(campaign.price_per_review * campaign.completed_reviews)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Reviews Completion</p>
-                  <p className="text-xl font-semibold">{Math.round((campaign.completed_reviews / campaign.target_reviews) * 100)}%</p>
-                </div>
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Campaign Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Total Budget</p>
+                    <p className="text-xl font-semibold">{formatCurrency(campaign.price_per_review * campaign.target_reviews)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Spent So Far</p>
+                    <p className="text-xl font-semibold">{formatCurrency(campaign.price_per_review * campaign.completed_reviews)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Reviews Completion</p>
+                    <p className="text-xl font-semibold">{Math.round((campaign.completed_reviews / campaign.target_reviews) * 100)}%</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Embed Reviews section only for business owner */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Embed Reviews</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 mb-4">
+                    Add these reviews to your website by copying the code below.
+                  </p>
+                  <div className="bg-gray-100 p-3 rounded-md text-sm font-mono overflow-x-auto">
+                    {`<script src="https://reviewhub.example/embed/${campaign.id}"></script>`}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    fullWidth 
+                    className="mt-4"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`<script src="https://reviewhub.example/embed/${campaign.id}"></script>`);
+                      alert('Embed code copied to clipboard!');
+                    }}
+                  >
+                    Copy Code
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
           )}
           
           {user?.role === 'admin' && (
@@ -525,31 +553,6 @@ export const CampaignDetailPage: React.FC = () => {
               </CardContent>
             </Card>
           )}
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Embed Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">
-                Add these reviews to your website by copying the code below.
-              </p>
-              <div className="bg-gray-100 p-3 rounded-md text-sm font-mono overflow-x-auto">
-                {`<script src="https://reviewhub.example/embed/${campaign.id}"></script>`}
-              </div>
-              <Button 
-                variant="outline" 
-                fullWidth 
-                className="mt-4"
-                onClick={() => {
-                  navigator.clipboard.writeText(`<script src="https://reviewhub.example/embed/${campaign.id}"></script>`);
-                  alert('Embed code copied to clipboard!');
-                }}
-              >
-                Copy Code
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

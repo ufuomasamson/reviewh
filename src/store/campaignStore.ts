@@ -304,28 +304,34 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         .from('reviews')
         .update({ status })
         .eq('id', id)
-        .select('*, reviewer:reviewers(name, country)');
-      
+        .select('*, reviewer:reviewers(id, wallet_balance)');
       const review = reviews && reviews.length > 0 ? reviews[0] : null;
-      
       if (error) throw error;
       if (!review) throw new Error('No review returned after update');
-      
-      // If review is approved, update campaign completed_reviews
+
+      // If review is approved, update campaign completed_reviews and credit reviewer
       if (status === 'approved') {
+        // Increment campaign completed_reviews
         const { error: campaignError } = await supabase.rpc('increment_campaign_reviews', {
           review_id: id
         });
-        
         if (campaignError) throw campaignError;
+
+        // Credit reviewer wallet
+        if (review.reviewer_id && review.earnings) {
+          await supabase
+            .from('reviewers')
+            .update({ wallet_balance: (review.reviewer?.wallet_balance || 0) + review.earnings })
+            .eq('id', review.reviewer_id);
+        }
       }
-      
+
       set(state => ({
-        reviews: state.reviews.map(r => 
+        reviews: state.reviews.map(r =>
           r.id === id ? review : r
         )
       }));
-      
+
       return review;
     } catch (error) {
       set({ error: 'Failed to update review status' });

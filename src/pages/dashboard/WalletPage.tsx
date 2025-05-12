@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, DollarSign, Calendar, Search } from 'lucide-react';
+import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, DollarSign, Calendar, Search, Star } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useWalletStore } from '../../store/walletStore';
 import { formatCurrency, formatDate } from '../../lib/utils';
@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
+import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 
 export const WalletPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -20,6 +21,10 @@ export const WalletPage: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [processingDeposit, setProcessingDeposit] = useState(false);
   const [processingWithdrawal, setProcessingWithdrawal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [serviceCharge, setServiceCharge] = useState(0);
+  const [netWithdraw, setNetWithdraw] = useState(0);
   
   useEffect(() => {
     const fetchWalletData = async () => {
@@ -90,31 +95,35 @@ export const WalletPage: React.FC = () => {
   };
   
   const handleWithdrawal = async () => {
-    if (!user || !amount || isNaN(parseFloat(amount))) return;
-    
-    const withdrawalAmount = parseFloat(amount);
+    if (!user || !withdrawAmount || isNaN(parseFloat(withdrawAmount))) return;
+    const withdrawalAmount = parseFloat(withdrawAmount);
     if (withdrawalAmount > walletBalance) {
       alert('Insufficient funds for withdrawal.');
       return;
     }
-    
+    // Calculate service charge and net amount
+    const charge = withdrawalAmount * 0.10;
+    const net = withdrawalAmount - charge;
+    setServiceCharge(charge);
+    setNetWithdraw(net);
+    setShowWithdrawModal(true);
+  };
+  
+  const confirmWithdrawal = async () => {
     setProcessingWithdrawal(true);
-    
     try {
       // In a real app, this would connect to a payment processor for withdrawal
-      // For this mock, we'll just create a withdrawal transaction
+      // For this mock, we'll just create a withdrawal transaction for the net amount
       const newTransaction = await createTransaction({
         userId: user.id,
-        amount: withdrawalAmount,
+        amount: netWithdraw,
         type: 'withdrawal',
-        status: 'pending', // In a real app, this would be processed asynchronously
-        description: 'Withdrawal request',
+        status: 'pending',
+        description: `Withdrawal request (10% service charge: $${serviceCharge.toFixed(2)})`,
       });
-      
-      // Update the transactions list
       setTransactions([newTransaction, ...transactions]);
-      setAmount('');
-      
+      setWithdrawAmount('');
+      setShowWithdrawModal(false);
       alert('Withdrawal request submitted successfully!');
     } catch (err) {
       console.error('Failed to process withdrawal:', err);
@@ -165,6 +174,25 @@ export const WalletPage: React.FC = () => {
     }
   };
   
+  // Add a handler for successful payment
+  const handleFlutterwaveSuccess = async (response: any) => {
+    // You can verify the payment on your backend here if needed
+    // For now, treat as successful and update wallet
+    if (!user) return;
+    const depositAmount = parseFloat(amount);
+    const newTransaction = await createTransaction({
+      userId: user.id,
+      amount: depositAmount,
+      type: 'deposit',
+      status: 'completed',
+      description: 'Account funding via Flutterwave',
+    });
+    setTransactions([newTransaction, ...transactions]);
+    setWalletBalance(walletBalance + depositAmount);
+    setAmount('');
+    alert('Deposit successful!');
+  };
+  
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-900">Wallet</h1>
@@ -210,30 +238,75 @@ export const WalletPage: React.FC = () => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  onClick={handleDeposit}
-                  isLoading={processingDeposit}
-                  disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
-                >
-                  Deposit
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={handleWithdrawal}
-                  isLoading={processingWithdrawal}
-                  disabled={
-                    !amount || 
-                    isNaN(parseFloat(amount)) || 
-                    parseFloat(amount) <= 0 ||
-                    parseFloat(amount) > walletBalance
-                  }
-                >
-                  Withdraw
-                </Button>
-              </div>
+              {/* Show Flutterwave button only if amount is valid and user is a business owner */}
+              {user?.role === 'business' && amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
+                <FlutterWaveButton
+                  public_key={import.meta.env.VITE_FLW_PUBLIC_KEY}
+                  tx_ref={Date.now().toString()}
+                  amount={parseFloat(amount)}
+                  currency="NGN"
+                  payment_options="card,mobilemoney,ussd"
+                  customer={{
+                    email: user.email,
+                    phone_number: user.phone_number || '',
+                    name: user.name,
+                  }}
+                  customizations={{
+                    title: 'ReviewH Payment',
+                    description: 'Payment for campaign funding',
+                    logo: 'https://yourdomain.com/logo.png',
+                  }}
+                  text="Deposit with Flutterwave"
+                  callback={handleFlutterwaveSuccess}
+                  onClose={() => {}}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full"
+                />
+              )}
+              {/* For reviewers, only show Withdraw button and require $30+ balance */}
+              {user?.role === 'reviewer' && (
+                <>
+                  <Input
+                    type="number"
+                    placeholder="Withdraw Amount"
+                    min="30"
+                    step="0.01"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleWithdrawal}
+                    isLoading={processingWithdrawal}
+                    disabled={walletBalance < 30 || !withdrawAmount || isNaN(parseFloat(withdrawAmount)) || parseFloat(withdrawAmount) < 30 || parseFloat(withdrawAmount) > walletBalance}
+                  >
+                    Withdraw
+                  </Button>
+                  {walletBalance < 30 && (
+                    <div className="text-sm text-amber-600 mt-2">
+                      You need at least $30 in your wallet to withdraw.
+                    </div>
+                  )}
+                  {/* Withdraw confirmation modal */}
+                  {showWithdrawModal && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
+                      <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-semibold mb-2">Confirm Withdrawal</h3>
+                        <p className="mb-2">Withdraw Amount: <span className="font-bold">${parseFloat(withdrawAmount).toFixed(2)}</span></p>
+                        <p className="mb-2 text-amber-700">Service Charge (10%): <span className="font-bold">${serviceCharge.toFixed(2)}</span></p>
+                        <p className="mb-4">Net Amount: <span className="font-bold">${netWithdraw.toFixed(2)}</span></p>
+                        <div className="flex gap-2">
+                          <Button onClick={confirmWithdrawal} isLoading={processingWithdrawal} fullWidth>
+                            Confirm
+                          </Button>
+                          <Button variant="outline" onClick={() => setShowWithdrawModal(false)} fullWidth>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

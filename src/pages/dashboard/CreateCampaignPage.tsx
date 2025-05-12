@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuthStore } from '../../store/authStore';
@@ -8,6 +8,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
+import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 
 interface CampaignFormData {
   title: string;
@@ -28,6 +29,31 @@ export const CreateCampaignPage: React.FC = () => {
     formState: { errors } 
   } = useForm<CampaignFormData>();
   
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+
+  useEffect(() => {
+    // Check subscription status (assume user.subscription_status and user.subscription_expiry exist)
+    if (
+      user?.role === 'business' &&
+      user.subscription_status === 'active' &&
+      user.subscription_expiry &&
+      new Date(user.subscription_expiry as string) > new Date()
+    ) {
+      setSubscriptionActive(true);
+    } else {
+      setSubscriptionActive(false);
+    }
+  }, [user]);
+
+  const handleSubscriptionSuccess = async (response: any) => {
+    // In a real app, verify payment and update subscription status in the backend
+    setSubscribing(false);
+    setSubscriptionActive(true);
+    alert('Subscription successful! You can now create campaigns.');
+    // Optionally, refetch user profile here
+  };
+
   const onSubmit = async (data: CampaignFormData) => {
     if (!user) {
       console.error('No user found');
@@ -59,9 +85,38 @@ export const CreateCampaignPage: React.FC = () => {
   };
   
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto py-10 space-y-10">
+      {user?.role === 'business' && !subscriptionActive && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-yellow-800">Subscription Required</h2>
+            <p className="text-yellow-700 mt-1">You need an active subscription ($6/month) to create campaigns. Please subscribe below to unlock all features.</p>
+          </div>
+          <FlutterWaveButton
+            public_key={import.meta.env.VITE_FLW_PUBLIC_KEY}
+            tx_ref={Date.now().toString()}
+            amount={6}
+            currency="USD"
+            payment_options="card"
+            customer={{
+              email: user.email,
+              phone_number: user.phone_number || '',
+              name: user.name,
+            }}
+            customizations={{
+              title: 'ReviewH Subscription',
+              description: 'Monthly subscription to unlock campaign creation',
+              logo: 'https://yourdomain.com/logo.png',
+            }}
+            text="Subscribe for $6/month"
+            callback={handleSubscriptionSuccess}
+            onClose={() => setSubscribing(false)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full mt-4"
+          />
+        </div>
+      )}
       <Card>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <CardHeader>
             <CardTitle>Create a New Campaign</CardTitle>
           <CardDescription>
@@ -166,7 +221,10 @@ export const CreateCampaignPage: React.FC = () => {
             </Button>
             <Button
               type="submit"
+              fullWidth
+              size="lg"
               isLoading={isLoading}
+              disabled={!subscriptionActive}
             >
               Create Campaign
             </Button>

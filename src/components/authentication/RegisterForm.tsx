@@ -16,6 +16,7 @@ interface RegisterFormData {
   confirmPassword: string;
   role: 'business' | 'reviewer';
   country?: string;
+  phone_number?: string;
 }
 
 const countryOptions = [
@@ -83,6 +84,7 @@ export const RegisterForm: React.FC = () => {
           email: data.email,
           role: data.role,
           isVerified: false,
+          phone_number: data.phone_number,
           ...(data.role === 'reviewer' && { country: data.country })
         },
         data.password
@@ -187,6 +189,23 @@ export const RegisterForm: React.FC = () => {
             />
           </div>
         )}
+        
+        <div>
+          <Input
+            label="Phone Number"
+            type="tel"
+            id="phone_number"
+            autoComplete="tel"
+            error={errors.phone_number?.message}
+            {...register('phone_number', {
+              required: 'Phone number is required',
+              minLength: {
+                value: 7,
+                message: 'Phone number must be at least 7 digits',
+              },
+            })}
+          />
+        </div>
         
         <div>
           <Input

@@ -8,6 +8,9 @@ export interface User {
   avatar?: string;
   isVerified: boolean;
   createdAt: string;
+  phone_number?: string;
+  subscription_status?: string;
+  subscription_expiry?: string;
 }
 
 export interface Business extends User {

@@ -57,7 +57,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           name: userData.name,
           role: userData.role,
           isVerified: userData.is_verified,
-          createdAt: userData.created_at
+          createdAt: userData.created_at,
+          phone_number: userData.phone_number,
+          subscription_status: userData.subscription_status,
+          subscription_expiry: userData.subscription_expiry,
         },
         isAuthenticated: true,
         isLoading: false,
@@ -163,7 +166,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           name: userData.name!,
           role: userData.role!,
           isVerified: false,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          phone_number: userData.phone_number,
+          subscription_status: undefined,
+          subscription_expiry: undefined,
         },
         isAuthenticated: true,
         isLoading: false,
@@ -246,7 +252,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             name: refreshedUser.name,
             role: refreshedUser.role,
             isVerified: refreshedUser.is_verified,
-            createdAt: refreshedUser.created_at
+            createdAt: refreshedUser.created_at,
+            phone_number: refreshedUser.phone_number,
+            subscription_status: refreshedUser.subscription_status,
+            subscription_expiry: refreshedUser.subscription_expiry,
           },
           isLoading: false
         });
@@ -277,7 +286,10 @@ export const initAuth = async () => {
           name: userData.name,
           role: userData.role,
           isVerified: userData.is_verified,
-          createdAt: userData.created_at
+          createdAt: userData.created_at,
+          phone_number: userData.phone_number,
+          subscription_status: userData.subscription_status,
+          subscription_expiry: userData.subscription_expiry,
         },
         isAuthenticated: true,
         isAuthHydrated: true

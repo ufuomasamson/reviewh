@@ -110,6 +110,7 @@ export const WalletPage: React.FC = () => {
   };
   
   const confirmWithdrawal = async () => {
+    if (!user) return;
     setProcessingWithdrawal(true);
     try {
       // In a real app, this would connect to a payment processor for withdrawal
@@ -227,23 +228,23 @@ export const WalletPage: React.FC = () => {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle>Fund Wallet <br />minimum amount: $20</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
                 type="number"
-                placeholder="Amount"
+                placeholder="Enter Amount"
                 min="0.01"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
               {/* Show Flutterwave button only if amount is valid and user is a business owner */}
-              {user?.role === 'business' && amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 && (
+              {user?.role === 'business' && (
                 <FlutterWaveButton
                   public_key={import.meta.env.VITE_FLW_PUBLIC_KEY}
                   tx_ref={Date.now().toString()}
-                  amount={parseFloat(amount)}
+                  amount={amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? parseFloat(amount) : 0}
                   currency="NGN"
                   payment_options="card,mobilemoney,ussd"
                   customer={{
@@ -259,7 +260,8 @@ export const WalletPage: React.FC = () => {
                   text="Deposit with Flutterwave"
                   callback={handleFlutterwaveSuccess}
                   onClose={() => {}}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full"
+                  className={`font-semibold py-2 rounded shadow w-full ${amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                  disabled={!(amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0)}
                 />
               )}
               {/* For reviewers, only show Withdraw button and require $30+ balance */}

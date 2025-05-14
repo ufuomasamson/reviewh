@@ -242,28 +242,13 @@ export const WalletPage: React.FC = () => {
               />
               {/* Show Flutterwave button only if amount is valid and user is a business owner */}
               {user?.role === 'business' && (
-                <FlutterWaveButton
-                  public_key={import.meta.env.VITE_FLW_PUBLIC_KEY}
-                  tx_ref={Date.now().toString()}
-                  amount={amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? parseFloat(amount) : 0}
-                  currency="NGN"
-                  payment_options="card,mobilemoney,ussd"
-                  customer={{
-                    email: user.email,
-                    phone_number: user.phone_number || '',
-                    name: user.name,
-                  }}
-                  customizations={{
-                    title: 'ReviewH Payment',
-                    description: 'Payment for campaign funding',
-                    logo: 'https://yourdomain.com/logo.png',
-                  }}
-                  text="Deposit with Flutterwave"
-                  callback={handleFlutterwaveSuccess}
-                  onClose={() => {}}
-                  className={`font-semibold py-2 rounded shadow w-full ${amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                  disabled={!(amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0)}
-                />
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full"
+                  onClick={() => window.open('https://flutterwave.com/pay/lgcn81dgv4rc', '_blank')}
+                  disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
+                >
+                  Fund Wallet
+                </Button>
               )}
               {/* For reviewers, only show Withdraw button and require $30+ balance */}
               {user?.role === 'reviewer' && (

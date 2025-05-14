@@ -8,7 +8,6 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
-import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 
 interface CampaignFormData {
   title: string;
@@ -92,27 +91,12 @@ export const CreateCampaignPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-yellow-800">Subscription Required</h2>
             <p className="text-yellow-700 mt-1">You need an active subscription ($6/month) to create campaigns. Please subscribe below to unlock all features.</p>
           </div>
-          <FlutterWaveButton
-            public_key={import.meta.env.VITE_FLW_PUBLIC_KEY}
-            tx_ref={Date.now().toString()}
-            amount={6}
-            currency="USD"
-            payment_options="card"
-            customer={{
-              email: user.email,
-              phone_number: user.phone_number || '',
-              name: user.name,
-            }}
-            customizations={{
-              title: 'ReviewH Subscription',
-              description: 'Monthly subscription to unlock campaign creation',
-              logo: 'https://yourdomain.com/logo.png',
-            }}
-            text="Subscribe for $6/month"
-            callback={handleSubscriptionSuccess}
-            onClose={() => setSubscribing(false)}
+          <Button
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full mt-4"
-          />
+            onClick={() => window.open('https://flutterwave.com/pay/6ki8mkpfrcrv', '_blank')}
+          >
+            Subscribe for $6/month
+          </Button>
         </div>
       )}
       <Card>

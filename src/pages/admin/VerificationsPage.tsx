@@ -83,6 +83,7 @@ export const VerificationsPage: React.FC = () => {
             website: b.website,
             isVerified: user.is_verified,
             walletBalance: user.balance,
+            balance: user.balance,
             createdAt: user.created_at,
             verificationDocuments: Array.isArray(b.verification_documents)
               ? b.verification_documents

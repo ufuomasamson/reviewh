@@ -56,7 +56,7 @@ export const UsersPage: React.FC = () => {
               companyName: businessProfile?.company_name,
               description: businessProfile?.description,
               website: businessProfile?.website,
-              walletBalance: businessProfile?.wallet_balance,
+              walletBalance: user.balance,
             };
           } else if (user.role === 'reviewer') {
             const reviewerProfile = reviewerMap.get(user.id);

@@ -61,6 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           phone_number: userData.phone_number,
           subscription_status: userData.subscription_status,
           subscription_expiry: userData.subscription_expiry,
+          balance: userData.balance ?? 0,
         },
         isAuthenticated: true,
         isLoading: false,
@@ -133,7 +134,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           id: signUpData.user?.id,
           company_name: userData.name,
           description: 'Business profile pending completion',
-          wallet_balance: 0
         });
         if (businessInsertError) {
           set({ isLoading: false, error: businessInsertError.message });
@@ -170,6 +170,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           phone_number: userData.phone_number,
           subscription_status: undefined,
           subscription_expiry: undefined,
+          balance: 0,
         },
         isAuthenticated: true,
         isLoading: false,
@@ -203,7 +204,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           id: user.id,
           company_name: user.name,
           description: 'Business profile pending completion',
-          wallet_balance: 0
         });
 
         if (createError) {
@@ -256,6 +256,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             phone_number: refreshedUser.phone_number,
             subscription_status: refreshedUser.subscription_status,
             subscription_expiry: refreshedUser.subscription_expiry,
+            balance: refreshedUser.balance ?? 0,
           },
           isLoading: false
         });
@@ -290,6 +291,7 @@ export const initAuth = async () => {
           phone_number: userData.phone_number,
           subscription_status: userData.subscription_status,
           subscription_expiry: userData.subscription_expiry,
+          balance: userData.balance ?? 0,
         },
         isAuthenticated: true,
         isAuthHydrated: true

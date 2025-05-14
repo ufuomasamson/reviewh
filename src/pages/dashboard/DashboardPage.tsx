@@ -37,9 +37,6 @@ export const DashboardPage: React.FC = () => {
         setBusinessProfile(business);
         const businessCampaigns = await getBusinessCampaigns(user.id);
         setCampaigns(businessCampaigns.slice(0, 3)); // Show just the first 3
-        
-        const balance = await getWalletBalance(user.id);
-        setWalletBalance(balance);
       } else if (user.role === 'reviewer') {
         const allCampaigns = await getCampaigns();
         setCampaigns(allCampaigns.filter(c => c.status === 'active').slice(0, 3));
@@ -122,7 +119,7 @@ export const DashboardPage: React.FC = () => {
             />
             <StatCard 
               title="Wallet Balance" 
-              value={formatCurrency(walletBalance)} 
+              value={formatCurrency(user.balance)} 
               icon={<DollarSign className="h-6 w-6" />} 
               description="Available for campaigns" 
             />
@@ -314,9 +311,54 @@ export const DashboardPage: React.FC = () => {
     return null;
   };
   
+  const BusinessBalances: React.FC = () => {
+    const [businesses, setBusinesses] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchBusinesses = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, email, balance')
+          .eq('role', 'business');
+        if (!error) setBusinesses(data || []);
+        setLoading(false);
+      };
+      fetchBusinesses();
+    }, []);
+
+    if (loading) return <div>Loading business balances...</div>;
+
+    return (
+      <div style={{ marginTop: 32 }}>
+        <h2 className="text-xl font-bold mb-2">Business Owners & Balances</h2>
+        <table className="min-w-full divide-y divide-gray-200 bg-white rounded shadow">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {businesses.map(b => (
+              <tr key={b.id}>
+                <td className="px-4 py-2">{b.name}</td>
+                <td className="px-4 py-2">{b.email}</td>
+                <td className="px-4 py-2">${b.balance}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+  
   return (
     <div className="space-y-6">
       {renderUserDashboard()}
+      <BusinessBalances />
     </div>
   );
 };

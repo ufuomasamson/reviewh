@@ -304,7 +304,7 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
         .from('reviews')
         .update({ status })
         .eq('id', id)
-        .select('*, reviewer:reviewers(id, wallet_balance)');
+        .select('*, reviewer:reviewers(id)');
       const review = reviews && reviews.length > 0 ? reviews[0] : null;
       if (error) throw error;
       if (!review) throw new Error('No review returned after update');

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Transaction } from '../lib/types';
 import { mockTransactions } from '../lib/mockData';
 import { generateId } from '../lib/utils';
+import { supabase } from '../lib/supabase';
 
 interface WalletState {
   transactions: Transaction[];
@@ -61,26 +62,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   getWalletBalance: async (userId: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const userTransactions = get().transactions.filter(tx => tx.userId === userId);
-      
-      // Calculate balance based on completed transactions
-      const balance = userTransactions
-        .filter(tx => tx.status === 'completed')
-        .reduce((total, tx) => {
-          if (tx.type === 'deposit' || tx.type === 'earning') {
-            return total + tx.amount;
-          } else if (tx.type === 'withdrawal' || tx.type === 'payment') {
-            return total - tx.amount;
-          }
-          return total;
-        }, 0);
-      
-      return balance;
+      // Fetch the user from Supabase
+      const { data, error } = await supabase
+        .from('users')
+        .select('wallet_balance')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return data?.wallet_balance ?? 0;
     } catch (error) {
-      set({ error: 'Failed to calculate wallet balance' });
+      set({ error: 'Failed to fetch wallet balance' });
       return 0;
     } finally {
       set({ isLoading: false });

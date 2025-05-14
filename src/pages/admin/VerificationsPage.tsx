@@ -44,14 +44,14 @@ export const VerificationsPage: React.FC = () => {
             description,
             website,
             verification_documents,
-            wallet_balance,
             created_at,
             users:users!inner(
               id,
               name,
               email,
               is_verified,
-              created_at
+              created_at,
+              balance
             )
           `)
           .order('created_at', { ascending: false });
@@ -82,7 +82,7 @@ export const VerificationsPage: React.FC = () => {
             description: b.description,
             website: b.website,
             isVerified: user.is_verified,
-            walletBalance: b.wallet_balance,
+            walletBalance: user.balance,
             createdAt: user.created_at,
             verificationDocuments: Array.isArray(b.verification_documents)
               ? b.verification_documents

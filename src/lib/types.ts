@@ -11,6 +11,7 @@ export interface User {
   phone_number?: string;
   subscription_status?: string;
   subscription_expiry?: string;
+  balance: number;
 }
 
 export interface Business extends User {
@@ -19,7 +20,6 @@ export interface Business extends User {
   description: string;
   website?: string;
   verificationDocuments?: string[];
-  walletBalance: number;
 }
 
 export interface Reviewer extends User {

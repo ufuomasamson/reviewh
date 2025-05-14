@@ -33,6 +33,7 @@ export const WalletPage: React.FC = () => {
       try {
         const userTransactions = await getUserTransactions(user.id);
         const balance = await getWalletBalance(user.id);
+        console.log("Fetched wallet balance:", balance); // DEBUG LOG
         
         setTransactions(userTransactions);
         setFilteredTransactions(userTransactions);

@@ -300,38 +300,42 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   updateReviewStatus: async (id, status) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: reviews, error } = await supabase
-        .from('reviews')
-        .update({ status })
-        .eq('id', id)
-        .select('*, reviewer:reviewers(id)');
-      const review = reviews && reviews.length > 0 ? reviews[0] : null;
-      if (error) throw error;
-      if (!review) throw new Error('No review returned after update');
-
-      // If review is approved, update campaign completed_reviews and credit reviewer
+      let review = null;
       if (status === 'approved') {
-        // Increment campaign completed_reviews
-        const { error: campaignError } = await supabase.rpc('increment_campaign_reviews', {
-          review_id: id
+        // Call backend API route to approve review and handle wallet/transaction
+        const res = await fetch('/api/review/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewId: id }),
         });
-        if (campaignError) throw campaignError;
-
-        // Credit reviewer wallet
-        if (review.reviewer_id && review.earnings) {
-          await supabase
-            .from('reviewers')
-            .update({ wallet_balance: (review.reviewer?.wallet_balance || 0) + review.earnings })
-            .eq('id', review.reviewer_id);
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to approve review');
         }
+        // Fetch the updated review
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*, reviewer:reviewers(id), campaign:campaigns(title)')
+          .eq('id', id)
+          .single();
+        if (error) throw error;
+        review = data;
+      } else {
+        // For rejected, update directly
+        const { data: reviews, error } = await supabase
+          .from('reviews')
+          .update({ status })
+          .eq('id', id)
+          .select('*, reviewer:reviewers(id), campaign:campaigns(title)');
+        review = reviews && reviews.length > 0 ? reviews[0] : null;
+        if (error) throw error;
+        if (!review) throw new Error('No review returned after update');
       }
-
       set(state => ({
         reviews: state.reviews.map(r =>
           r.id === id ? review : r
         )
       }));
-
       return review;
     } catch (error) {
       set({ error: 'Failed to update review status' });

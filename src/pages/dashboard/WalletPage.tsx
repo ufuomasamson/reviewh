@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Alert } from '../../components/ui/Alert';
 import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
+import { supabase } from '../../lib/supabase';
 
 export const WalletPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -29,12 +30,26 @@ export const WalletPage: React.FC = () => {
   useEffect(() => {
     const fetchWalletData = async () => {
       if (!user) return;
-      
       try {
         const userTransactions = await getUserTransactions(user.id);
-        const balance = await getWalletBalance(user.id);
-        console.log("Fetched wallet balance:", balance); // DEBUG LOG
-        
+        let balance = 0;
+        if (user.role === 'business') {
+          // Fetch from businesses table
+          const { data: business, error } = await supabase
+            .from('businesses')
+            .select('wallet_balance')
+            .eq('id', user.id)
+            .single();
+          balance = business?.wallet_balance || 0;
+        } else if (user.role === 'reviewer') {
+          // Fetch from reviewers table
+          const { data: reviewer, error } = await supabase
+            .from('reviewers')
+            .select('wallet_balance')
+            .eq('id', user.id)
+            .single();
+          balance = reviewer?.wallet_balance || 0;
+        }
         setTransactions(userTransactions);
         setFilteredTransactions(userTransactions);
         setWalletBalance(balance);
@@ -42,7 +57,6 @@ export const WalletPage: React.FC = () => {
         console.error('Failed to fetch wallet data:', err);
       }
     };
-    
     fetchWalletData();
   }, [user]);
   

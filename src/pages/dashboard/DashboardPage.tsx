@@ -28,13 +28,14 @@ export const DashboardPage: React.FC = () => {
       if (!user) return;
       
       if (user.role === 'business') {
-        // Fetch business profile
+        // Fetch business profile and wallet balance
         const { data: business, error } = await supabase
           .from('businesses')
           .select('*')
           .eq('id', user.id)
           .single();
         setBusinessProfile(business);
+        setWalletBalance(business?.wallet_balance || 0);
         const businessCampaigns = await getBusinessCampaigns(user.id);
         setCampaigns(businessCampaigns.slice(0, 3)); // Show just the first 3
       } else if (user.role === 'reviewer') {
@@ -119,7 +120,7 @@ export const DashboardPage: React.FC = () => {
             />
             <StatCard 
               title="Wallet Balance" 
-              value={formatCurrency(user.balance)} 
+              value={formatCurrency(walletBalance)} 
               icon={<DollarSign className="h-6 w-6" />} 
               description="Available for campaigns" 
             />
@@ -319,10 +320,22 @@ export const DashboardPage: React.FC = () => {
       const fetchBusinesses = async () => {
         setLoading(true);
         const { data, error } = await supabase
-          .from('users')
-          .select('id, name, email, balance')
-          .eq('role', 'business');
-        if (!error) setBusinesses(data || []);
+          .from('businesses')
+          .select('id, company_name, wallet_balance')
+        if (!error && data) {
+          // Join with users for name/email
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('id, name, email')
+            .in('id', data.map((b: any) => b.id));
+          const userMap = new Map(usersData?.map((u: any) => [u.id, u]) || []);
+          setBusinesses(data.map((b: any) => ({
+            id: b.id,
+            name: userMap.get(b.id)?.name || '',
+            email: userMap.get(b.id)?.email || '',
+            balance: b.wallet_balance || 0
+          })));
+        }
         setLoading(false);
       };
       fetchBusinesses();
@@ -346,7 +359,7 @@ export const DashboardPage: React.FC = () => {
               <tr key={b.id}>
                 <td className="px-4 py-2">{b.name}</td>
                 <td className="px-4 py-2">{b.email}</td>
-                <td className="px-4 py-2">${b.balance}</td>
+                <td className="px-4 py-2">{formatCurrency(b.balance)}</td>
               </tr>
             ))}
           </tbody>

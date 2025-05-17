@@ -85,20 +85,7 @@ export const CreateCampaignPage: React.FC = () => {
   
   return (
     <div className="max-w-2xl mx-auto py-10 space-y-10">
-      {user?.role === 'business' && !subscriptionActive && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-yellow-800">Subscription Required</h2>
-            <p className="text-yellow-700 mt-1">You need an active subscription ($6/month) to create campaigns. Please subscribe below to unlock all features.</p>
-          </div>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded shadow w-full mt-4"
-            onClick={() => window.open('https://flutterwave.com/pay/6ki8mkpfrcrv', '_blank')}
-          >
-            Subscribe for $6/month
-          </Button>
-        </div>
-      )}
+      {/* Subscription requirement temporarily removed for testing */}
       <Card>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <CardHeader>
@@ -208,7 +195,7 @@ export const CreateCampaignPage: React.FC = () => {
               fullWidth
               size="lg"
               isLoading={isLoading}
-              disabled={!subscriptionActive}
+              // Allow campaign creation regardless of subscription status
             >
               Create Campaign
             </Button>

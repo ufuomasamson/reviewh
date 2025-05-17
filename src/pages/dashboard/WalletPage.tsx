@@ -71,7 +71,7 @@ export const WalletPage: React.FC = () => {
       transaction.description.toLowerCase().includes(query) ||
       transaction.type.toLowerCase().includes(query) ||
       formatCurrency(transaction.amount).toLowerCase().includes(query) ||
-      formatDate(transaction.createdAt).toLowerCase().includes(query)
+      formatDate(transaction.created_at).toLowerCase().includes(query)
     );
     
     setFilteredTransactions(filtered);
@@ -390,7 +390,7 @@ export const WalletPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          <div className="text-sm text-gray-500">{formatDate(transaction.createdAt)}</div>
+                          <div className="text-sm text-gray-500">{formatDate(transaction.created_at)}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

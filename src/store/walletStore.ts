@@ -23,9 +23,14 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   getUserTransactions: async (userId: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return get().transactions.filter(tx => tx.userId === userId);
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
     } catch (error) {
       set({ error: 'Failed to fetch transactions' });
       return [];

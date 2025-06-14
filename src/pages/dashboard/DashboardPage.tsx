@@ -1,31 +1,162 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Megaphone, DollarSign, BarChart } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { useCampaignStore } from '../../store/campaignStore';
-import { useWalletStore } from '../../store/walletStore';
 import { Button } from '../../components/ui/Button';
-import { StatCard } from '../../components/dashboard/StatCard';
-import { CampaignCard } from '../../components/campaign/CampaignCard';
-import { ReviewCard } from '../../components/review/ReviewCard';
-import { formatCurrency } from '../../lib/utils';
-import { Campaign, Review } from '../../lib/types';
+import { 
+  Star, 
+  Megaphone, 
+  BarChart, 
+  DollarSign,
+  Users,
+  TrendingUp,
+  Clock,
+  CheckCircle
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { 
+  getCampaigns, 
+  getBusinessCampaigns, 
+  getReviews, 
+  getWalletBalance, 
+  getTotalEarnings 
+} from '../../lib/api';
 
 export const DashboardPage: React.FC = () => {
+  console.log('🔥 DashboardPage component loaded');
   const { user } = useAuthStore();
-  const { getCampaigns, getBusinessCampaigns, getReviews } = useCampaignStore();
-  const { getWalletBalance, getTotalEarnings } = useWalletStore();
-  
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  console.log('👤 User data:', user);
+
+  // State
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [businessProfile, setBusinessProfile] = useState<any>(null);
-  
+  const [adminStats, setAdminStats] = useState({
+    totalUsers: 0,
+    activeCampaigns: 0,
+    pendingReviews: 0,
+    pendingVerifications: 0,
+    platformRevenue: 0
+  });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN'
+    }).format(amount);
+  };
+
+  // Format time ago helper
+  const formatTimeAgo = (date: string) => {
+    const now = new Date();
+    const past = new Date(date);
+    const diffInHours = Math.floor((now.getTime() - past.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  // Fetch admin data
+  const fetchAdminData = async () => {
+    try {
+      // Get total users
+      const { count: totalUsers } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      // Get active campaigns
+      const { count: activeCampaigns } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Get pending reviews
+      const { count: pendingReviews } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      // Get pending verifications
+      const { count: pendingVerifications } = await supabase
+        .from('businesses')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_verified', false);
+
+      // Calculate platform revenue (example calculation)
+      const { data: completedCampaigns } = await supabase
+        .from('campaigns')
+        .select('budget')
+        .eq('status', 'completed');
+
+      const platformRevenue = completedCampaigns?.reduce((sum, campaign) => sum + (campaign.budget * 0.1), 0) || 0;
+
+      setAdminStats({
+        totalUsers: totalUsers || 0,
+        activeCampaigns: activeCampaigns || 0,
+        pendingReviews: pendingReviews || 0,
+        pendingVerifications: pendingVerifications || 0,
+        platformRevenue
+      });
+
+      // Get recent activity
+      const { data: recentCampaigns } = await supabase
+        .from('campaigns')
+        .select('title, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      const { data: recentReviews } = await supabase
+        .from('reviews')
+        .select('created_at')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      const { data: recentVerifications } = await supabase
+        .from('businesses')
+        .select('company_name, updated_at')
+        .eq('is_verified', true)
+        .order('updated_at', { ascending: false })
+        .limit(2);
+
+      const activities = [
+        ...(recentCampaigns?.map(c => ({
+          type: 'campaign_submitted',
+          message: `Campaign submitted: ${c.title}`,
+          time: c.created_at
+        })) || []),
+        ...(recentReviews?.map(r => ({
+          type: 'review_approved',
+          message: 'Review approved',
+          time: r.created_at
+        })) || []),
+        ...(recentVerifications?.map(b => ({
+          type: 'business_verified',
+          message: `Business verified: ${b.company_name}`,
+          time: b.updated_at
+        })) || [])
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 4);
+
+      setRecentActivity(activities);
+
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+    }
+  };
+
   useEffect(() => {
+    console.log('🔄 useEffect triggered, user:', user);
     const fetchData = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('❌ No user in useEffect, returning early');
+        return;
+      }
+      console.log('📊 Calling fetchData for role:', user.role);
       
       if (user.role === 'business') {
         // Fetch business profile and wallet balance
@@ -51,327 +182,289 @@ export const DashboardPage: React.FC = () => {
         const earnings = await getTotalEarnings(user.id);
         setTotalEarnings(earnings);
       } else if (user.role === 'admin') {
+        // Fetch admin dashboard data
+        await fetchAdminData();
+
         const allCampaigns = await getCampaigns();
         setCampaigns(allCampaigns.slice(0, 3));
-        
+
         const allReviews = await getReviews();
-        setReviews(allReviews.filter(r => r.status === 'pending').slice(0, 3));
+        setReviews(allReviews.filter(r => r.status === 'pending').slice(0, 5));
       }
     };
     
     fetchData();
   }, [user]);
-  
+
   const renderUserDashboard = () => {
-    if (!user) return null;
+    console.log('🎯 renderUserDashboard called');
+    if (!user) {
+      console.log('❌ No user found, returning null');
+      return null;
+    }
+    console.log('✅ User found, role:', user.role);
     
     // Business Dashboard
+    console.log('🏢 Checking if user is business');
     if (user.role === 'business') {
+      console.log('✅ Business role confirmed, rendering business dashboard');
       return (
-        <div className="space-y-8">
-          {/* Verification Status */}
-          {!user.isVerified && businessProfile && businessProfile.verification_documents && businessProfile.verification_documents.length > 0 && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-yellow-800">Awaiting Verification</h2>
-                <p className="text-yellow-700 mt-1">Your documents have been submitted and are pending admin approval.</p>
+        <div className="min-h-screen bg-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-gray-800 rounded-2xl">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
               </div>
-            </div>
-          )}
-          {user.isVerified && (
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-md flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-green-800">Account Verified</h2>
-                <p className="text-green-700 mt-1">Your business account has been approved. You can now access all features.</p>
-              </div>
-            </div>
-          )}
-          {/* Prompt to submit documents if not verified and no documents */}
-          {!user.isVerified && (!businessProfile || !businessProfile.verification_documents || businessProfile.verification_documents.length === 0) && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-yellow-800">Verify Your Business Account</h2>
-                <p className="text-yellow-700 mt-1">To unlock all features and start running campaigns, please verify your business by submitting the required documents.</p>
-              </div>
-              <Link to="/dashboard/verify">
-                <Button variant="outline">Submit Documents</Button>
-              </Link>
-            </div>
-          )}
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Business Dashboard</h1>
-            <Link to="/campaigns/create">
-              <Button rightIcon={<Megaphone className="h-5 w-5" />}>
-                Create Campaign
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
-              title="Total Campaigns" 
-              value={campaigns.length} 
-              icon={<Megaphone className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Total Reviews" 
-              value={campaigns.reduce((acc, camp) => acc + camp.completed_reviews, 0)} 
-              icon={<Star className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Wallet Balance" 
-              value={formatCurrency(walletBalance)} 
-              icon={<DollarSign className="h-6 w-6" />} 
-              description="Available for campaigns" 
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Your Campaigns</h2>
-              <Link to="/campaigns" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View all campaigns
-              </Link>
-            </div>
-            
-            {campaigns.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {campaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Megaphone className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No campaigns yet</h3>
-                <p className="mt-1 text-gray-500">Get started by creating your first campaign.</p>
-                <div className="mt-6">
-                  <Link to="/campaigns/create">
-                    <Button>Create a Campaign</Button>
-                  </Link>
+              <div className="relative z-10 p-8">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h1 className="text-4xl font-bold text-white mb-2">
+                      Welcome back, <span className="text-primary">{user.name}</span>!
+                    </h1>
+                    <p className="text-xl text-gray-300">Manage your review campaigns and grow your business</p>
+                  </div>
+                  <div className="mt-6 lg:mt-0">
+                    <Link to="/campaigns/create">
+                      <Button
+                        size="lg"
+                        rightIcon={<Megaphone className="h-5 w-5" />}
+                        className="bg-primary hover:bg-primary-600 text-black font-semibold"
+                      >
+                        Create New Campaign
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <Megaphone className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Total Campaigns</p>
+                    <p className="text-2xl font-bold text-white">{campaigns.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       );
     }
-    
+
     // Reviewer Dashboard
+    console.log('⭐ Checking if user is reviewer');
     if (user.role === 'reviewer') {
+      console.log('✅ Reviewer role confirmed, rendering reviewer dashboard');
       return (
-        <div className="space-y-8">
-          <h1 className="text-2xl font-bold text-gray-900">Reviewer Dashboard</h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
-              title="Reviews Written" 
-              value={reviews.length} 
-              icon={<Star className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Total Earnings" 
-              value={formatCurrency(totalEarnings)} 
-              icon={<DollarSign className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Available Balance" 
-              value={formatCurrency(walletBalance)} 
-              icon={<BarChart className="h-6 w-6" />} 
-              description="Available for withdrawal" 
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Available Campaigns</h2>
-              <Link to="/campaigns" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View all campaigns
-              </Link>
+        <div className="min-h-screen bg-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-gray-800 rounded-2xl">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
+              </div>
+              <div className="relative z-10 p-8">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h1 className="text-4xl font-bold text-white mb-2">
+                      Hello, <span className="text-primary">{user.name}</span>!
+                    </h1>
+                    <p className="text-xl text-gray-300">Discover new campaigns and earn money by writing honest reviews</p>
+                  </div>
+                  <div className="mt-6 lg:mt-0">
+                    <Link to="/campaigns">
+                      <Button
+                        size="lg"
+                        rightIcon={<Star className="h-5 w-5" />}
+                        className="bg-primary hover:bg-primary-600 text-black font-semibold"
+                      >
+                        Browse Campaigns
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            {campaigns.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {campaigns.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
-                ))}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <Star className="h-6 w-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Reviews Written</p>
+                    <p className="text-2xl font-bold text-white">{reviews.length}</p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Megaphone className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No campaigns available</h3>
-                <p className="mt-1 text-gray-500">Check back soon for new review opportunities.</p>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-green-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <BarChart className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Approved Reviews</p>
+                    <p className="text-2xl font-bold text-white">{reviews.filter(r => r.status === 'approved').length}</p>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Your Recent Reviews</h2>
-              <Link to="/reviews" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View all reviews
-              </Link>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <DollarSign className="h-6 w-6 text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Total Earnings</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(totalEarnings)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-primary bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <DollarSign className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Available Balance</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(walletBalance)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            {reviews.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reviews.map((review) => (
-                  <ReviewCard 
-                    key={review.id} 
-                    review={review} 
-                    reviewerName={user.name}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Star className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No reviews yet</h3>
-                <p className="mt-1 text-gray-500">Start writing reviews to earn money.</p>
-                <div className="mt-6">
+          </div>
+        </div>
+      );
+    }
+
+    // Admin Dashboard
+    console.log('👑 Checking if user is admin');
+    if (user.role === 'admin') {
+      console.log('✅ Admin role confirmed, rendering admin dashboard');
+      return (
+        <div className="min-h-screen bg-black">
+          <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 border-b border-gray-800">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
+            </div>
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold text-white mb-2">
+                    Admin <span className="text-primary">Dashboard</span>
+                  </h1>
+                  <p className="text-xl text-gray-300">
+                    Monitor platform performance and manage operations
+                  </p>
+                </div>
+                <div className="mt-6 lg:mt-0 flex flex-col sm:flex-row gap-3">
+                  <Link to="/admin/users">
+                    <Button
+                      size="lg"
+                      className="bg-primary hover:bg-primary-600 text-black font-semibold"
+                    >
+                      Manage Users
+                    </Button>
+                  </Link>
                   <Link to="/campaigns">
-                    <Button>Browse Campaigns</Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="border-gray-600 text-gray-300 hover:border-primary hover:text-primary"
+                    >
+                      Manage Campaigns
+                    </Button>
                   </Link>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-    
-    // Admin Dashboard
-    if (user.role === 'admin') {
-      return (
-        <div className="space-y-8">
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
-              title="Active Campaigns" 
-              value={campaigns.filter(c => c.status === 'active').length} 
-              icon={<Megaphone className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Pending Reviews" 
-              value={reviews.length} 
-              icon={<Star className="h-6 w-6" />} 
-            />
-            <StatCard 
-              title="Pending Verifications" 
-              value="3" 
-              icon={<DollarSign className="h-6 w-6" />} 
-            />
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Pending Reviews</h2>
-              <Link to="/reviews" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View all reviews
-              </Link>
             </div>
-            
-            {reviews.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reviews.map((review) => (
-                  <ReviewCard 
-                    key={review.id} 
-                    review={review}
-                    showActions={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Star className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">No pending reviews</h3>
-                <p className="mt-1 text-gray-500">All reviews have been moderated.</p>
-              </div>
-            )}
           </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Campaigns</h2>
-              <Link to="/campaigns" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View all campaigns
-              </Link>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {campaigns.map((campaign) => (
-                <CampaignCard key={campaign.id} campaign={campaign} />
-              ))}
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-primary transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Total Users</p>
+                    <p className="text-3xl font-bold text-white mt-2">{adminStats.totalUsers}</p>
+                    <p className="text-green-400 text-sm mt-1">+12% from last month</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <Users className="h-6 w-6 text-blue-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-primary transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Active Campaigns</p>
+                    <p className="text-3xl font-bold text-white mt-2">{adminStats.activeCampaigns}</p>
+                    <p className="text-green-400 text-sm mt-1">+8% from last month</p>
+                  </div>
+                  <div className="w-12 h-12 bg-primary bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <Megaphone className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-primary transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Pending Reviews</p>
+                    <p className="text-3xl font-bold text-white mt-2">{adminStats.pendingReviews}</p>
+                    <p className="text-yellow-400 text-sm mt-1">Needs attention</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <Star className="h-6 w-6 text-yellow-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-primary transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Pending Verifications</p>
+                    <p className="text-3xl font-bold text-white mt-2">{adminStats.pendingVerifications}</p>
+                    <p className="text-orange-400 text-sm mt-1">Action required</p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <BarChart className="h-6 w-6 text-orange-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-primary transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Platform Revenue</p>
+                    <p className="text-3xl font-bold text-white mt-2">{formatCurrency(adminStats.platformRevenue)}</p>
+                    <p className="text-green-400 text-sm mt-1">+24% from last month</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-500 bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-green-400" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       );
     }
-    
+
+    console.log('🚨 No role matched, returning null');
+    console.log('🔍 User role was:', user?.role);
     return null;
   };
-  
-  const BusinessBalances: React.FC = () => {
-    const [businesses, setBusinesses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-      const fetchBusinesses = async () => {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('businesses')
-          .select('id, company_name, wallet_balance')
-        if (!error && data) {
-          // Join with users for name/email
-          const { data: usersData } = await supabase
-            .from('users')
-            .select('id, name, email')
-            .in('id', data.map((b: any) => b.id));
-          const userMap = new Map(usersData?.map((u: any) => [u.id, u]) || []);
-          setBusinesses(data.map((b: any) => ({
-            id: b.id,
-            name: userMap.get(b.id)?.name || '',
-            email: userMap.get(b.id)?.email || '',
-            balance: b.wallet_balance || 0
-          })));
-        }
-        setLoading(false);
-      };
-      fetchBusinesses();
-    }, []);
-
-    if (loading) return <div>Loading business balances...</div>;
-
-    return (
-      <div style={{ marginTop: 32 }}>
-        <h2 className="text-xl font-bold mb-2">Business Owners & Balances</h2>
-        <table className="min-w-full divide-y divide-gray-200 bg-white rounded shadow">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {businesses.map(b => (
-              <tr key={b.id}>
-                <td className="px-4 py-2">{b.name}</td>
-                <td className="px-4 py-2">{b.email}</td>
-                <td className="px-4 py-2">{formatCurrency(b.balance)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+  console.log('🎯 Main DashboardPage return, calling renderUserDashboard()');
   
   return (
     <div className="space-y-6">
       {renderUserDashboard()}
-      {user && user.role === 'admin' && <BusinessBalances />}
     </div>
   );
 };

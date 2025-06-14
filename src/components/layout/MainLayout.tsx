@@ -6,7 +6,7 @@ import { PageContainer } from './PageContainer';
 
 export const MainLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-app">
       <Header />
       <div className="flex-1">
         <PageContainer>

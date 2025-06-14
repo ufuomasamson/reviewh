@@ -21,23 +21,53 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend,
   className,
 }) => {
+  // Check if this is a compact layout (for admin dashboard with 5 columns)
+  const isCompact = className?.includes('text-center');
+
+  if (isCompact) {
+    return (
+      <div className={cn(
+        'bg-primary overflow-hidden rounded-lg border border-primary-600 shadow-lg',
+        className
+      )}>
+        <div className="p-4">
+          <div className="text-center">
+            {icon && (
+              <div className="flex justify-center mb-3">
+                <div className="p-2 rounded-md bg-black bg-opacity-20 text-black">
+                  {icon}
+                </div>
+              </div>
+            )}
+            <p className="text-xs font-medium text-black opacity-80 mb-1 leading-tight">
+              {title}
+            </p>
+            <p className="text-xl font-bold text-black">
+              {value}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
-      'bg-white overflow-hidden rounded-lg border border-gray-200 shadow-sm',
+      'bg-primary overflow-hidden rounded-lg border border-primary-600 shadow-lg',
       className
     )}>
-      <div className="p-5">
+      <div className="p-6">
         <div className="flex items-center">
           {icon && (
-            <div className="flex-shrink-0 p-3 rounded-md bg-blue-50 text-blue-700">
+            <div className="flex-shrink-0 p-3 rounded-md bg-black bg-opacity-20 text-black">
               {icon}
             </div>
           )}
           <div className={cn("ml-0", icon && "ml-5")}>
-            <p className="text-sm font-medium text-gray-500 truncate">
+            <p className="text-sm font-medium text-black opacity-80 truncate">
               {title}
             </p>
-            <p className="mt-1 text-3xl font-semibold text-gray-900">
+            <p className="mt-1 text-3xl font-bold text-black">
               {value}
             </p>
           </div>

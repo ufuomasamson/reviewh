@@ -47,29 +47,29 @@ export const DashboardLayout: React.FC = () => {
     if (user.role === 'admin') {
       roleLinks = [
         {
-          name: 'Admin Campaigns',
-          to: '/admin/campaigns',
-          icon: <Megaphone className="h-5 w-5" />,
-        },
-        {
           name: 'Campaigns',
           to: '/campaigns',
           icon: <Megaphone className="h-5 w-5" />,
         },
         {
           name: 'Reviews',
-          to: '/reviews',
+          to: '/admin/reviews',
           icon: <Star className="h-5 w-5" />,
         },
         {
           name: 'Users',
-          to: '/users',
+          to: '/admin/users',
           icon: <Users className="h-5 w-5" />,
         },
         {
           name: 'Verifications',
-          to: '/verifications',
+          to: '/admin/verifications',
           icon: <FileCheck className="h-5 w-5" />,
+        },
+        {
+          name: 'Analytics',
+          to: '/admin/analytics',
+          icon: <LayoutDashboard className="h-5 w-5" />,
         },
       ];
     } else if (user.role === 'business') {
@@ -117,10 +117,14 @@ export const DashboardLayout: React.FC = () => {
       <Link
         key={link.to}
         to={link.to}
-        className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
-          isActivePath(link.to)
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+          user?.role === 'admin'
+            ? isActivePath(link.to)
+              ? 'bg-primary text-black shadow-lg'
+              : 'text-gray-300 hover:bg-gray-800 hover:text-primary border border-transparent hover:border-gray-700'
+            : isActivePath(link.to)
+              ? 'bg-primary-50 text-primary-700'
+              : 'text-on-light hover:bg-accent-100 hover:text-primary'
         }`}
       >
         <span className="mr-3">{link.icon}</span>
@@ -130,13 +134,17 @@ export const DashboardLayout: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className={`min-h-screen flex flex-col ${user?.role === 'admin' ? 'bg-black' : 'bg-app'}`}>
       <Header />
-      
+
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <aside className="hidden md:flex md:flex-shrink-0">
-          <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
+          <div className={`flex flex-col w-64 border-r ${
+            user?.role === 'admin'
+              ? 'border-gray-700 bg-gradient-to-b from-gray-900 to-black'
+              : 'border-accent-300 bg-card'
+          }`}>
             <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
               <nav className="mt-5 flex-1 px-2 space-y-1">
                 {renderNavLinks()}
@@ -144,9 +152,9 @@ export const DashboardLayout: React.FC = () => {
             </div>
           </div>
         </aside>
-        
+
         {/* Main content */}
-        <div className="flex-1 overflow-auto">
+        <div className={`flex-1 overflow-auto ${user?.role === 'admin' ? 'bg-black' : ''}`}>
           <PageContainer>
             <Outlet />
           </PageContainer>

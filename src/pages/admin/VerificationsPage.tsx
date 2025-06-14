@@ -45,13 +45,12 @@ export const VerificationsPage: React.FC = () => {
             website,
             verification_documents,
             created_at,
-            users:users!inner(
+            users!inner(
               id,
               name,
               email,
               is_verified,
-              created_at,
-              balance
+              created_at
             )
           `)
           .order('created_at', { ascending: false });
@@ -177,182 +176,199 @@ export const VerificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
-      {/* TEMPORARY TEST BUTTON - REMOVE AFTER TESTING */}
-      <Button
-        onClick={async () => {
-          const { data, error } = await supabase
-            .storage
-            .from('documents')
-            .createSignedUrl(testPath, 60 * 60); // 1 hour
-          if (data?.signedUrl) {
-            window.open(data.signedUrl, '_blank');
-          } else {
-            alert('Error: ' + (error?.message || 'Unknown error'));
-            console.log('Error:', error);
-          }
-        }}
-        variant="outline"
-        style={{ marginBottom: 16 }}
-      >
-        Test Open Document
-      </Button>
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Business Verifications</h1>
-      </div>
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="md:flex-1">
-          <Input
-            placeholder="Search businesses..."
-            icon={<Search className="h-5 w-5" />}
-            value={searchQuery}
-            onChange={handleSearch}
-          />
+    <div className="min-h-screen bg-black">
+      {/* Header Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 border-b border-gray-800">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
         </div>
-        <div className="md:w-64">
-          <Select
-            options={[
-              { value: 'all', label: 'All Status' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'rejected', label: 'Rejected' },
-            ]}
-            value={statusFilter}
-            onChange={handleStatusChange}
-          />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">
+                Business <span className="text-primary">Verifications</span>
+              </h1>
+              <p className="text-xl text-gray-300">
+                Review and approve business verification requests
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-      {error && (
-        <div className="text-red-600 text-center py-2">{error}</div>
-      )}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <svg
-            className="animate-spin h-8 w-8 text-blue-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Search and Filter Section */}
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="md:flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search businesses..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="md:w-64">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
-      ) : filteredVerifications.length > 0 ? (
-        <div className="grid md:grid-cols-2 gap-6">
-          {filteredVerifications.map((verification) => (
-            <Card key={verification.id}>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{verification.companyName}</CardTitle>
-                  <p className="text-sm text-gray-500 mt-1">Submitted: {formatDate(verification.submittedAt || '')}</p>
-                </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  verification.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
-                  verification.verificationStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                  'bg-amber-100 text-amber-800'
-                }`}>
-                  {verification.verificationStatus === 'approved' ? 'Approved' :
-                   verification.verificationStatus === 'rejected' ? 'Rejected' :
-                   'Pending'}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center">
-                  <Avatar name={verification.name} size="md" />
-                  <div className="ml-3">
-                    <p className="text-sm font-medium">{verification.name}</p>
-                    <p className="text-sm text-gray-500">{verification.email}</p>
+        {error && (
+          <div className="bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20 rounded-xl p-4">
+            <p className="text-red-400 text-center">{error}</p>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <svg
+              className="animate-spin h-8 w-8 text-primary"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          </div>
+        ) : filteredVerifications.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {filteredVerifications.map((verification) => (
+              <div key={verification.id} className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
+                <div className="p-6 border-b border-gray-700">
+                  <div className="flex flex-row items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{verification.companyName}</h3>
+                      <p className="text-sm text-gray-400 mt-1">Submitted: {formatDate(verification.submittedAt || '')}</p>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      verification.verificationStatus === 'approved' ? 'bg-green-500 bg-opacity-20 text-green-400' :
+                      verification.verificationStatus === 'rejected' ? 'bg-red-500 bg-opacity-20 text-red-400' :
+                      'bg-yellow-500 bg-opacity-20 text-yellow-400'
+                    }`}>
+                      {verification.verificationStatus === 'approved' ? 'Approved' :
+                       verification.verificationStatus === 'rejected' ? 'Rejected' :
+                       'Pending'}
+                    </div>
                   </div>
                 </div>
-                <div className="border-t border-b py-4">
-                  <h3 className="text-sm font-medium mb-2">Submitted Documents</h3>
-                  <ul className="space-y-2">
-                    {verification.verificationDocuments?.length ? verification.verificationDocuments.map((doc, index) => (
-                      <li key={index} className="flex items-center text-sm">
-                        <FileCheck className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-gray-600">{doc}</span>
-                        <button
-                          className="ml-auto text-blue-600 hover:text-blue-800"
-                          onClick={async () => {
-                            console.log('Document path:', doc); // Debug log
-                            // Try to get a signed URL (always works for private buckets)
-                            const { data, error } = await supabase.storage.from('documents').createSignedUrl(doc, 60 * 60);
-                            if (data?.signedUrl) {
-                              window.open(data.signedUrl, '_blank');
-                            } else {
-                              alert('Unable to open document. ' + (error?.message || ''));
-                              console.log('Signed URL error:', error);
-                            }
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </li>
-                    )) : <li className="text-gray-400 text-sm">No documents submitted</li>}
-                  </ul>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center">
+                    <Avatar name={verification.name} size="md" />
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-white">{verification.name}</p>
+                      <p className="text-sm text-gray-400">{verification.email}</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-700 pt-4">
+                    <h3 className="text-sm font-medium text-white mb-3">Submitted Documents</h3>
+                    <ul className="space-y-2">
+                      {verification.verificationDocuments?.length ? verification.verificationDocuments.map((doc, index) => (
+                        <li key={index} className="flex items-center text-sm bg-gray-900 rounded-lg p-3 border border-gray-700">
+                          <FileCheck className="h-4 w-4 text-green-400 mr-3 flex-shrink-0" />
+                          <span className="text-gray-300 flex-1 truncate">{doc}</span>
+                          <button
+                            className="ml-3 text-primary hover:text-primary-400 transition-colors"
+                            onClick={async () => {
+                              console.log('Document path:', doc);
+                              const { data, error } = await supabase.storage.from('documents').createSignedUrl(doc, 60 * 60);
+                              if (data?.signedUrl) {
+                                window.open(data.signedUrl, '_blank');
+                              } else {
+                                alert('Unable to open document. ' + (error?.message || ''));
+                                console.log('Signed URL error:', error);
+                              }
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </li>
+                      )) : <li className="text-gray-500 text-sm bg-gray-900 rounded-lg p-3 border border-gray-700">No documents submitted</li>}
+                    </ul>
+                  </div>
+                  {verification.website && (
+                    <div className="flex items-center text-sm pt-4 border-t border-gray-700">
+                      <span className="text-gray-400 mr-2">Website:</span>
+                      <a
+                        href={verification.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary-400 flex items-center transition-colors"
+                      >
+                        {verification.website}
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </a>
+                    </div>
+                  )}
+                  {verification.verificationNotes && (
+                    <div className="bg-gray-900 border border-gray-700 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-white mb-2">Notes</h3>
+                      <p className="text-sm text-gray-300">{verification.verificationNotes}</p>
+                    </div>
+                  )}
                 </div>
-                {verification.website && (
-                  <div className="flex items-center text-sm">
-                    <span className="text-gray-500 mr-2">Website:</span>
-                    <a
-                      href={verification.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 flex items-center"
+                {verification.verificationStatus === 'pending' && (
+                  <div className="border-t border-gray-700 p-6 flex justify-end space-x-3">
+                    <Button
+                      onClick={() => handleReject(verification.userId, verification.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
                     >
-                      {verification.website}
-                      <ExternalLink className="h-3 w-3 ml-1" />
-                    </a>
+                      <X className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                    <Button
+                      onClick={() => handleApprove(verification.userId, verification.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Approve
+                    </Button>
                   </div>
                 )}
-                {verification.verificationNotes && (
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <h3 className="text-sm font-medium mb-1">Notes</h3>
-                    <p className="text-sm text-gray-600">{verification.verificationNotes}</p>
-                  </div>
-                )}
-              </CardContent>
-              {verification.verificationStatus === 'pending' && (
-                <CardFooter className="border-t pt-4 flex justify-end space-x-3">
-                  <Button
-                    onClick={() => handleReject(verification.userId, verification.id)}
-                    variant="danger"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    onClick={() => handleApprove(verification.userId, verification.id)}
-                    variant="success"
-                  >
-                    Approve
-                  </Button>
-                </CardFooter>
-              )}
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <FileCheck className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">No verifications found</h3>
-          <p className="mt-1 text-gray-500">
-            {searchQuery || statusFilter !== 'all'
-              ? 'Try adjusting your filters to see more results.'
-              : 'There are no business verification requests.'}
-          </p>
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700">
+            <FileCheck className="mx-auto h-12 w-12 text-gray-600 mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">No verifications found</h3>
+            <p className="text-gray-400">
+              {searchQuery || statusFilter !== 'all'
+                ? 'Try adjusting your filters to see more results.'
+                : 'There are no business verification requests.'}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

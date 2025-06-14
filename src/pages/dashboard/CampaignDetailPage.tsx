@@ -85,17 +85,13 @@ export const CampaignDetailPage: React.FC = () => {
     
     try {
       const updatedReview = await updateReviewStatus(reviewId, 'approved');
-      
       // Update the reviews list with the updated review
       setReviews(reviews.map(rev => 
         rev.id === reviewId ? updatedReview : rev
       ));
-      
-      // Update the campaign's completed reviews count
-      setCampaign({
-        ...campaign,
-        completed_reviews: campaign.completed_reviews + 1,
-      });
+      // Refetch the campaign from backend to get the correct completed_reviews
+      const updatedCampaign = await getCampaignById(campaign.id);
+      if (updatedCampaign) setCampaign(updatedCampaign);
     } catch (error) {
       console.error('Failed to approve review:', error);
     }

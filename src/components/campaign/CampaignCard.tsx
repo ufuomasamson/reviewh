@@ -42,40 +42,41 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, showAction
       
       <CardContent className="space-y-4 flex-1">
         <div>
-          <h4 className="text-sm font-medium text-gray-500">Product</h4>
-          <p className="text-gray-900">{campaign.product}</p>
+          <h4 className="text-sm font-medium text-black opacity-70">Product</h4>
+          <p className="text-black font-medium">{campaign.product}</p>
         </div>
-        
+
         <div className="flex justify-between">
           <div>
-            <h4 className="text-sm font-medium text-gray-500">Per Review</h4>
-            <p className="text-gray-900 font-medium">{formatCurrency(campaign.price_per_review)}</p>
+            <h4 className="text-sm font-medium text-black opacity-70">Per Review</h4>
+            <p className="text-black font-bold">{formatCurrency(campaign.price_per_review)}</p>
           </div>
-          
+
           <div>
-            <h4 className="text-sm font-medium text-gray-500">Progress</h4>
-            <p className="text-gray-900">{campaign.completed_reviews} / {campaign.target_reviews}</p>
+            <h4 className="text-sm font-medium text-black opacity-70">Progress</h4>
+            <p className="text-black font-medium">{campaign.completed_reviews} / {campaign.target_reviews}</p>
           </div>
         </div>
-        
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full" 
+
+        <div className="w-full bg-black bg-opacity-20 rounded-full h-3">
+          <div
+            className="bg-black h-3 rounded-full transition-all duration-300"
             style={{ width: `${(campaign.completed_reviews / campaign.target_reviews) * 100}%` }}
           ></div>
         </div>
       </CardContent>
       
-      <CardFooter className="border-t pt-4 flex justify-between items-center">
-        <div className="text-sm text-gray-500">
+      <CardFooter className="border-t border-black border-opacity-20 pt-4 flex justify-between items-center">
+        <div className="text-sm text-black opacity-70">
           Created: {formatDate(campaign.created_at)}
         </div>
-        
+
         {showActions && (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={handleViewClick}
+            className="border-black text-black hover:bg-black hover:text-primary"
           >
             View Details
           </Button>

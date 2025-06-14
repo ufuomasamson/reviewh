@@ -39,15 +39,15 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         <div className="flex items-center">
           <Avatar name={displayName} size="sm" countryCode={displayCountryCode} />
           <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">{displayName}</p>
+            <p className="text-sm font-medium text-black">{displayName}</p>
             {displayCountry && (
-              <p className="text-xs text-gray-500">{displayCountry}</p>
+              <p className="text-xs text-black opacity-70">{displayCountry}</p>
             )}
             <div className="flex items-center mt-1">
               {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  className={`h-4 w-4 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} 
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${i < review.rating ? 'text-yellow-600 fill-yellow-600' : 'text-black opacity-30'}`}
                 />
               ))}
             </div>
@@ -59,31 +59,31 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       </CardHeader>
       
       <CardContent className="flex-1">
-        <p className="text-gray-700 leading-relaxed">{review.content}</p>
+        <p className="text-black opacity-90 leading-relaxed">{review.content}</p>
       </CardContent>
-      
-      <CardFooter className="border-t pt-4 flex justify-between items-center">
-        <div className="text-sm text-gray-500">
+
+      <CardFooter className="border-t border-black border-opacity-20 pt-4 flex justify-between items-center">
+        <div className="text-sm text-black opacity-70">
           {displayDate}
         </div>
-        
+
         {showActions && review.status === 'pending' ? (
           <div className="flex space-x-2">
-            <button 
+            <button
               onClick={onReject}
-              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium"
+              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium bg-red-100 rounded-md"
             >
               Reject
             </button>
-            <button 
+            <button
               onClick={onApprove}
-              className="px-3 py-1 text-sm bg-green-100 text-green-800 hover:bg-green-200 rounded-md font-medium"
+              className="px-3 py-1 text-sm bg-green-600 text-white hover:bg-green-700 rounded-md font-medium"
             >
               Approve
             </button>
           </div>
         ) : (
-          <div className="flex items-center text-gray-500 text-sm">
+          <div className="flex items-center text-black opacity-70 text-sm">
             <ThumbsUp className="h-4 w-4 mr-1" />
             <span>Helpful</span>
           </div>

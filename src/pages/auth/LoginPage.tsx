@@ -12,14 +12,14 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-[80vh] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <Star className="h-12 w-12 text-blue-600" />
+          <Star className="h-12 w-12 text-primary" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-on-dark">
           Sign in to your account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-muted">
           Or{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link to="/register" className="font-medium text-primary hover:text-primary-600">
             create a new account
           </Link>
         </p>
@@ -32,16 +32,16 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
         
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-card py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <LoginForm />
           
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-accent-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
+                <span className="px-2 bg-card text-muted">
                   Or continue with
                 </span>
               </div>
@@ -51,7 +51,7 @@ export const LoginPage: React.FC = () => {
               <div>
                 <a
                   href="#"
-                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  className="w-full inline-flex justify-center py-2 px-4 border border-accent-300 rounded-md shadow-sm bg-card text-sm font-medium text-muted hover:bg-accent-100"
                 >
                   <span className="sr-only">Sign in with Google</span>
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
               <div>
                 <a
                   href="#"
-                  className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  className="w-full inline-flex justify-center py-2 px-4 border border-accent-300 rounded-md shadow-sm bg-card text-sm font-medium text-muted hover:bg-accent-100"
                 >
                   <span className="sr-only">Sign in with LinkedIn</span>
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    background-color: #000000;
+  }
+
+  body {
+    background-color: #000000;
+    color: #ffffff;
+  }
+
+  /* Ensure all root elements have dark background */
+  #root {
+    background-color: #000000;
+    min-height: 100vh;
+  }
+}

@@ -21,14 +21,14 @@ export const Alert: React.FC<AlertProps> = ({
   onClose,
 }) => {
   const variantStyles = {
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
+    info: 'bg-primary-50 text-primary-800 border-primary-200',
     success: 'bg-green-50 text-green-800 border-green-200',
     warning: 'bg-amber-50 text-amber-800 border-amber-200',
     error: 'bg-red-50 text-red-800 border-red-200',
   };
 
   const titleColorStyles = {
-    info: 'text-blue-800',
+    info: 'text-primary-800',
     success: 'text-green-800',
     warning: 'text-amber-800',
     error: 'text-red-800',
@@ -58,7 +58,7 @@ export const Alert: React.FC<AlertProps> = ({
             className={cn(
               'ml-auto -mx-1.5 -my-1.5 rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2',
               {
-                'bg-blue-50 text-blue-500 hover:bg-blue-100 focus:ring-blue-500 focus:ring-offset-blue-50': variant === 'info',
+                'bg-primary-50 text-primary-500 hover:bg-primary-100 focus:ring-primary-500 focus:ring-offset-primary-50': variant === 'info',
                 'bg-green-50 text-green-500 hover:bg-green-100 focus:ring-green-500 focus:ring-offset-green-50': variant === 'success',
                 'bg-amber-50 text-amber-500 hover:bg-amber-100 focus:ring-amber-500 focus:ring-offset-amber-50': variant === 'warning',
                 'bg-red-50 text-red-500 hover:bg-red-100 focus:ring-red-500 focus:ring-offset-red-50': variant === 'error',

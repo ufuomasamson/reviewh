@@ -78,13 +78,120 @@ export const CampaignsPage: React.FC = () => {
     setStatusFilter(value);
   };
   
+  if (user?.role === 'admin') {
+    return (
+      <div className="min-h-screen bg-black">
+        {/* Admin Header Section */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 border-b border-gray-800">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary rounded-full blur-3xl"></div>
+          </div>
+
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">
+                  Campaign <span className="text-primary">Management</span>
+                </h1>
+                <p className="text-xl text-gray-300">
+                  Monitor and manage all platform campaigns
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+          {/* Search and Filter Section */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="md:flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search campaigns..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="md:w-64">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <svg
+                className="animate-spin h-8 w-8 text-primary"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            </div>
+          ) : filteredCampaigns.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCampaigns.map((campaign) => (
+                <CampaignCard key={campaign.id} campaign={campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
+              <Megaphone className="mx-auto h-12 w-12 mb-4 text-gray-600" />
+              <h3 className="text-lg font-medium mb-2 text-white">No campaigns found</h3>
+              <p className="text-gray-400">
+                {searchQuery || statusFilter !== 'all'
+                  ? 'Try adjusting your filters to see more results.'
+                  : 'Check back soon for new campaigns.'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">
           {user?.role === 'business' ? 'Your Campaigns' : 'Available Campaigns'}
         </h1>
-        
+
         {user?.role === 'business' && (
           <Link to="/campaigns/create">
             <Button rightIcon={<Plus className="h-5 w-5" />}>
@@ -93,7 +200,8 @@ export const CampaignsPage: React.FC = () => {
           </Link>
         )}
       </div>
-      
+
+      {/* Search and Filter Section */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="md:flex-1">
           <Input
@@ -103,7 +211,7 @@ export const CampaignsPage: React.FC = () => {
             onChange={handleSearch}
           />
         </div>
-        
+
         <div className="md:w-64">
           <Select
             options={[
@@ -120,26 +228,26 @@ export const CampaignsPage: React.FC = () => {
           />
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <svg 
-            className="animate-spin h-8 w-8 text-blue-600" 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
+          <svg
+            className="animate-spin h-8 w-8 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
             viewBox="0 0 24 24"
           >
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
               strokeWidth="4"
             />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
+            <path
+              className="opacity-75"
+              fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
@@ -155,13 +263,13 @@ export const CampaignsPage: React.FC = () => {
           <Megaphone className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-lg font-medium text-gray-900">No campaigns found</h3>
           <p className="mt-1 text-gray-500">
-            {searchQuery || statusFilter !== 'all' 
+            {searchQuery || statusFilter !== 'all'
               ? 'Try adjusting your filters to see more results.'
-              : user?.role === 'business' 
-                ? 'Get started by creating your first campaign.' 
+              : user?.role === 'business'
+                ? 'Get started by creating your first campaign.'
                 : 'Check back soon for new campaigns.'}
           </p>
-          
+
           {user?.role === 'business' && !searchQuery && statusFilter === 'all' && (
             <div className="mt-6">
               <Link to="/campaigns/create">

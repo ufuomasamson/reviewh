@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
-import { 
-  Star, 
-  Megaphone, 
-  BarChart, 
+import {
+  Star,
+  Megaphone,
+  BarChart,
   DollarSign,
   Users,
   TrendingUp,
@@ -239,6 +239,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
                 <div className="flex items-center">
@@ -248,6 +249,288 @@ export const DashboardPage: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-400">Total Campaigns</p>
                     <p className="text-2xl font-bold text-white">{campaigns.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-green-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <BarChart className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Active Campaigns</p>
+                    <p className="text-2xl font-bold text-white">{campaigns.filter(c => c.status === 'active').length}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <Star className="h-6 w-6 text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Total Reviews</p>
+                    <p className="text-2xl font-bold text-white">{campaigns.reduce((sum, c) => sum + (c.completed_reviews || 0), 0)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-primary bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <DollarSign className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Wallet Balance</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(walletBalance)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Business Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Campaign Performance</h3>
+                  <TrendingUp className="h-5 w-5 text-green-400" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Success Rate</span>
+                    <span className="text-sm font-medium text-green-400">92%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Avg. Rating</span>
+                    <span className="text-sm font-medium text-yellow-400">4.6/5</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full" style={{ width: '92%' }}></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Monthly Spending</h3>
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(campaigns.reduce((sum, c) => sum + ((c.price_per_review || 0) * (c.completed_reviews || 0)), 0))}</p>
+                    <p className="text-sm text-gray-400">Total spent this month</p>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400">Budget remaining</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(walletBalance)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Business Profile</h3>
+                  <CheckCircle className={`h-5 w-5 ${user.isVerified ? 'text-green-400' : 'text-yellow-400'}`} />
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-400">Verification Status</p>
+                    <p className={`text-sm font-medium ${user.isVerified ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {user.isVerified ? 'Verified Business' : 'Pending Verification'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Member Since</p>
+                    <p className="text-sm font-medium text-white">
+                      {new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Account Type</p>
+                    <p className="text-sm font-medium text-primary">Business Account</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Recent Campaigns - Takes 2 columns */}
+              <div className="lg:col-span-2">
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
+                  <div className="p-6 border-b border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-2xl font-bold text-white">Your Campaigns</h2>
+                      <Link to="/campaigns" className="text-primary hover:text-primary-400 text-sm font-medium bg-primary bg-opacity-10 px-4 py-2 rounded-lg border border-primary border-opacity-20">
+                        View All →
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {campaigns.length > 0 ? (
+                      <div className="space-y-4">
+                        {campaigns.slice(0, 4).map((campaign) => (
+                          <div key={campaign.id} className="bg-gray-900 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-colors">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-white">{campaign.title}</h3>
+                                <p className="text-sm text-gray-400 mt-1">{campaign.product}</p>
+                                <div className="flex items-center mt-2 space-x-4">
+                                  <span className="text-sm text-gray-400">
+                                    {campaign.completed_reviews || 0}/{campaign.target_reviews || 0} reviews
+                                  </span>
+                                  <span className="text-sm font-medium text-primary">
+                                    {formatCurrency(campaign.price_per_review || 0)} per review
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  campaign.status === 'active' ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500 border-opacity-30' :
+                                  campaign.status === 'pending' ? 'bg-yellow-500 bg-opacity-20 text-yellow-400 border border-yellow-500 border-opacity-30' :
+                                  campaign.status === 'completed' ? 'bg-blue-500 bg-opacity-20 text-blue-400 border border-blue-500 border-opacity-30' :
+                                  'bg-gray-500 bg-opacity-20 text-gray-400 border border-gray-500 border-opacity-30'
+                                }`}>
+                                  {campaign.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Megaphone className="mx-auto h-16 w-16 text-gray-600 mb-4" />
+                        <h3 className="text-xl font-medium text-white mb-2">No campaigns yet</h3>
+                        <p className="text-gray-400 mb-6">Get started by creating your first campaign.</p>
+                        <Link to="/campaigns/create">
+                          <Button className="bg-primary hover:bg-primary-600 text-black">
+                            Create Your First Campaign
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions & Analytics */}
+              <div className="bg-black border border-gray-800 rounded-2xl p-6 space-y-6" style={{ backgroundColor: '#0a0a0a' }}>
+                {/* Quick Actions */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
+                  <div className="space-y-3">
+                    <Link to="/campaigns/create" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <Megaphone className="h-5 w-5 text-blue-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Create Campaign</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/wallet" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <DollarSign className="h-5 w-5 text-green-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Add Funds</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/reviews" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-yellow-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <Star className="h-5 w-5 text-yellow-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">View Reviews</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/dashboard/verify" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <CheckCircle className="h-5 w-5 text-purple-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Verify Business</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Performance Overview */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Performance</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Campaign Success Rate</span>
+                        <span className="text-white font-medium">85%</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Review Quality Score</span>
+                        <span className="text-white font-medium">4.8/5</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full" style={{ width: '96%' }}></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Response Time</span>
+                        <span className="text-white font-medium">2.3 days</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-primary to-yellow-500 h-2 rounded-full" style={{ width: '70%' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Business Insights */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Business Insights</h3>
+                  <div className="space-y-4">
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <TrendingUp className="h-4 w-4 text-green-400 mr-2" />
+                        <span className="text-sm font-medium text-green-400">Growth Trend</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Your campaigns are performing 23% better than last month</p>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Star className="h-4 w-4 text-yellow-400 mr-2" />
+                        <span className="text-sm font-medium text-yellow-400">Top Performer</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Your highest-rated campaign has 4.9/5 stars</p>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Clock className="h-4 w-4 text-blue-400 mr-2" />
+                        <span className="text-sm font-medium text-blue-400">Optimization Tip</span>
+                      </div>
+                      <p className="text-xs text-gray-400">Consider increasing budget for high-performing campaigns</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -292,6 +575,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
                 <div className="flex items-center">
@@ -334,6 +618,261 @@ export const DashboardPage: React.FC = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-400">Available Balance</p>
                     <p className="text-2xl font-bold text-white">{formatCurrency(walletBalance)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Reviewer Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Review Performance</h3>
+                  <TrendingUp className="h-5 w-5 text-green-400" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Approval Rate</span>
+                    <span className="text-sm font-medium text-green-400">
+                      {reviews.length > 0 ? Math.round((reviews.filter(r => r.status === 'approved').length / reviews.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full"
+                      style={{
+                        width: `${reviews.length > 0 ? (reviews.filter(r => r.status === 'approved').length / reviews.length) * 100 : 0}%`
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Avg. Rating Given</span>
+                    <span className="text-sm font-medium text-yellow-400">4.2/5</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full" style={{ width: '84%' }}></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Earnings Overview</h3>
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(totalEarnings)}</p>
+                    <p className="text-sm text-gray-400">Total lifetime earnings</p>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400">This month</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(totalEarnings * 0.3)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400">Pending</span>
+                    <span className="text-yellow-400 font-medium">
+                      {formatCurrency(reviews.filter(r => r.status === 'pending').length * 1.5)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Reviewer Profile</h3>
+                  <CheckCircle className="h-5 w-5 text-green-400" />
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-400">Reviewer Level</p>
+                    <p className="text-sm font-medium text-primary">
+                      {reviews.length >= 50 ? 'Expert Reviewer' :
+                       reviews.length >= 20 ? 'Advanced Reviewer' :
+                       reviews.length >= 5 ? 'Intermediate Reviewer' : 'Beginner Reviewer'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Member Since</p>
+                    <p className="text-sm font-medium text-white">
+                      {new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Specialization</p>
+                    <p className="text-sm font-medium text-blue-400">Technology & Apps</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Available Campaigns - Takes 2 columns */}
+              <div className="lg:col-span-2">
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden">
+                  <div className="p-6 border-b border-gray-700">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-2xl font-bold text-white">Available Campaigns</h2>
+                      <Link to="/campaigns" className="text-primary hover:text-primary-400 text-sm font-medium bg-primary bg-opacity-10 px-4 py-2 rounded-lg border border-primary border-opacity-20">
+                        View All →
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {campaigns.length > 0 ? (
+                      <div className="space-y-4">
+                        {campaigns.slice(0, 4).map((campaign) => (
+                          <div key={campaign.id} className="bg-gray-900 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-colors">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-white">{campaign.title}</h3>
+                                <p className="text-sm text-gray-400 mt-1">{campaign.product}</p>
+                                <div className="flex items-center mt-2 space-x-4">
+                                  <span className="text-sm text-gray-400">
+                                    {(campaign.target_reviews || 0) - (campaign.completed_reviews || 0)} reviews needed
+                                  </span>
+                                  <span className="text-lg font-bold text-primary">
+                                    {formatCurrency(campaign.price_per_review || 0)}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Link to={`/campaigns/${campaign.id}`}>
+                                  <Button size="sm" className="bg-primary hover:bg-primary-600 text-black">
+                                    Write Review
+                                  </Button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Megaphone className="mx-auto h-16 w-16 text-gray-600 mb-4" />
+                        <h3 className="text-xl font-medium text-white mb-2">No campaigns available</h3>
+                        <p className="text-gray-400 mb-6">Check back soon for new review opportunities.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="bg-black border border-gray-800 rounded-2xl p-6 space-y-6" style={{ backgroundColor: '#0a0a0a' }}>
+                {/* Quick Actions */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
+                  <div className="space-y-3">
+                    <Link to="/campaigns" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <Star className="h-5 w-5 text-blue-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Browse Campaigns</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/reviews" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <BarChart className="h-5 w-5 text-green-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">My Reviews</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/wallet" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-yellow-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <DollarSign className="h-5 w-5 text-yellow-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Withdraw Earnings</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <Link to="/dashboard/settings" className="block">
+                      <div className="bg-gray-900 hover:bg-gray-800 border border-gray-700 hover:border-primary rounded-xl p-4 transition-all duration-300 group">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-primary group-hover:bg-opacity-20">
+                            <Users className="h-5 w-5 text-purple-400 group-hover:text-primary" />
+                          </div>
+                          <span className="font-medium text-white">Profile Settings</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Recent Reviews */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Recent Reviews</h3>
+                  {reviews.length > 0 ? (
+                    <div className="space-y-3">
+                      {reviews.slice(0, 3).map((review) => (
+                        <div key={review.id} className="bg-gray-900 border border-gray-700 rounded-xl p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-medium text-white">{review.campaign?.title || 'Campaign'}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {review.rating || 4}/5 stars • {formatCurrency(review.earnings || 1.5)}
+                              </p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              review.status === 'approved' ? 'bg-green-500 bg-opacity-20 text-green-400 border border-green-500 border-opacity-30' :
+                              review.status === 'pending' ? 'bg-yellow-500 bg-opacity-20 text-yellow-400 border border-yellow-500 border-opacity-30' :
+                              'bg-red-500 bg-opacity-20 text-red-400 border border-red-500 border-opacity-30'
+                            }`}>
+                              {review.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-sm font-medium text-gray-400">No reviews yet</p>
+                      <p className="text-xs text-gray-500 mt-1">Start writing reviews to earn money</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reviewer Insights */}
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-4" style={{ backgroundColor: '#1a1a1a' }}>
+                  <h3 className="text-xl font-bold text-white mb-4">Reviewer Insights</h3>
+                  <div className="space-y-4">
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <TrendingUp className="h-4 w-4 text-green-400 mr-2" />
+                        <span className="text-sm font-medium text-green-400">Earning Streak</span>
+                      </div>
+                      <p className="text-xs text-gray-400">You've earned money for 5 consecutive days!</p>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Star className="h-4 w-4 text-yellow-400 mr-2" />
+                        <span className="text-sm font-medium text-yellow-400">Quality Bonus</span>
+                      </div>
+                      <p className="text-xs text-gray-400">High-quality reviews earn 20% bonus payments</p>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center mb-2">
+                        <Clock className="h-4 w-4 text-blue-400 mr-2" />
+                        <span className="text-sm font-medium text-blue-400">Next Level</span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {reviews.length >= 20 ? 'You\'re an Advanced Reviewer!' :
+                         `Write ${20 - reviews.length} more reviews to reach Advanced level`}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

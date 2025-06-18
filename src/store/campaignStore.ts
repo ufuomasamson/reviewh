@@ -300,45 +300,64 @@ export const useCampaignStore = create<CampaignState>((set, get) => ({
   updateReviewStatus: async (id, status) => {
     set({ isLoading: true, error: null });
     try {
-      let review = null;
-      if (status === 'approved') {
-        // Call backend API route to approve review and handle wallet/transaction
-        const res = await fetch('/api/review/approve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reviewId: id }),
+      console.log('Updating review status:', { id, status });
+
+      // Use the RPC function for secure review status updates
+      const { data: result, error: rpcError } = await supabase
+        .rpc('update_review_status_admin_only', {
+          review_id: id,
+          new_status: status
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to approve review');
-        }
-        // Fetch the updated review
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*, reviewer:reviewers(id), campaign:campaigns(title)')
-          .eq('id', id)
-          .single();
-        if (error) throw error;
-        review = data;
-      } else {
-        // For rejected, update directly
-        const { data: reviews, error } = await supabase
-          .from('reviews')
-          .update({ status })
-          .eq('id', id)
-          .select('*, reviewer:reviewers(id), campaign:campaigns(title)');
-        review = reviews && reviews.length > 0 ? reviews[0] : null;
-        if (error) throw error;
-        if (!review) throw new Error('No review returned after update');
+
+      if (rpcError) {
+        console.error('RPC Error:', rpcError);
+        throw rpcError;
       }
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to update review status');
+      }
+
+      console.log('Review status updated successfully via RPC:', result);
+
+      // Fetch the updated review with relations
+      const { data: reviews, error: fetchError } = await supabase
+        .from('reviews')
+        .select('*, reviewer:reviewers(id), campaign:campaigns(title)')
+        .eq('id', id);
+
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      const review = reviews && reviews.length > 0 ? reviews[0] : null;
+      if (!review) throw new Error('No review returned after update');
+
+      console.log('Fetched updated review:', review);
+
+      // Update the local state
       set(state => ({
         reviews: state.reviews.map(r =>
           r.id === id ? review : r
         )
       }));
+
       return review;
-    } catch (error) {
-      set({ error: 'Failed to update review status' });
+    } catch (error: any) {
+      console.error('Error updating review status:', error);
+
+      // Provide more specific error messages
+      if (error?.message?.includes('Only admins can update review status')) {
+        set({ error: 'Permission denied. Only admins can update review status.' });
+      } else if (error?.code === 'PGRST202') {
+        set({ error: 'Database function not found. Please apply the latest migrations.' });
+      } else if (error?.code === 'PGRST116') {
+        set({ error: 'Review not found or access denied.' });
+      } else {
+        set({ error: 'Failed to update review status' });
+      }
+
       throw error;
     } finally {
       set({ isLoading: false });
